@@ -21,6 +21,13 @@ jobs:
           unzip -q mobile-source.zip
           mv "AI-원고-디렉터-Mobile-0.1.0" mobile-app
 
+      - name: Apply mobile UI patch
+        shell: bash
+        run: |
+          if [ -f mobile-patch.py ]; then
+            python mobile-patch.py mobile-app
+          fi
+
       - uses: actions/setup-java@v5
         with:
           distribution: temurin

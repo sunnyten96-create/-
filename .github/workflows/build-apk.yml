@@ -25,12 +25,11 @@ jobs:
       - name: Install official 8.7.5 brand logo
         shell: bash
         run: |
-          LOGO_URL="https://novelcheck-a1.duckdns.org/brand-logo-8.0.5.png"
           mkdir -p mobile-app/app/src/main/assets/mobile
           mkdir -p mobile-app/app/src/main/res/drawable-nodpi
-          curl --fail --location --retry 3 --retry-delay 2 "$LOGO_URL" -o mobile-app/app/src/main/assets/mobile/brand-logo.png
+          base64 --decode brandlogo020.b64 > mobile-app/app/src/main/assets/mobile/brand-logo.png
           cp mobile-app/app/src/main/assets/mobile/brand-logo.png mobile-app/app/src/main/res/drawable-nodpi/brand_logo.png
-          test -s mobile-app/app/src/main/assets/mobile/brand-logo.png
+          echo "702d966318e8b9c35bbb130645f2f51b89b39f611fb9a185d391e317f8d46cdd  mobile-app/app/src/main/assets/mobile/brand-logo.png" | sha256sum -c -
 
       - uses: actions/setup-java@v5
         with:

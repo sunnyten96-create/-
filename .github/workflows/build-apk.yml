@@ -2,59 +2,9 @@ name: Build Android APK
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
 
 jobs:
-  build:
+  placeholder:
     runs-on: ubuntu-latest
-    env:
-      ANDROID_HOME: /usr/local/lib/android/sdk
-      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Restore mobile source
-        shell: bash
-        run: |
-          cat mobile-source.part*.b64 | base64 --decode > mobile-source.zip
-          unzip -q mobile-source.zip
-          mv "AI-원고-디렉터-Mobile-0.1.0" mobile-app
-
-      - name: Apply mobile UI patch
-        shell: bash
-        run: |
-          if [ -f mobile-patch.py ]; then
-            python mobile-patch.py mobile-app
-          fi
-
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Accept licenses and install SDK
-        shell: bash
-        run: |
-          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
-
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
-
-      - name: Build debug APK
-        working-directory: mobile-app
-        run: gradle :app:assembleDebug --stacktrace
-
-      - name: Rename APK
-        run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Mobile.apk
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: AI-Manuscript-Director-Mobile-APK
-          path: AI-Manuscript-Director-Mobile.apk
-          if-no-files-found: error
-          retention-days: 90
+      - run: echo "Source upload in progress"

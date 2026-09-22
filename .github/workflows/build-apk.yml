@@ -1,8 +1,68 @@
 name: Build Android APK 0.2.0
+
 on:
   workflow_dispatch:
+  push:
+    branches: [ main ]
+
 jobs:
-  placeholder:
+  build:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
-      - run: echo "Embedding official logo"
+      - uses: actions/checkout@v4
+
+      - name: Restore 0.2.0 source
+        shell: bash
+        run: |
+          cat v020-source.part*.b64 | base64 --decode > v020-source.zip
+          unzip -q v020-source.zip
+          mv "AI-원고-디렉터-Mobile-0.2.0" mobile-app
+
+      - name: Install vector brand logo
+        shell: bash
+        run: |
+          cat > mobile-app/app/src/main/assets/mobile/brand-logo.svg <<'SVG'
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108">
+            <rect x="7" y="7" width="94" height="94" rx="11" fill="#07162F"/>
+            <path fill="#FFC436" d="M29 34c0-5 4-9 9-9h23c8 0 14 4 18 10v13l14-8c3-2 6 0 6 4v24c0 4-3 6-6 4l-14-8v12c0 5-4 9-9 9H38c-5 0-9-4-9-9V34zm9-4c-2 0-4 2-4 4v42c0 2 2 4 4 4h31c2 0 4-2 4-4V38c0-5-4-8-9-8H38z"/>
+            <path fill="#FFC436" d="M42 43h17c2 0 3 1 3 3s-1 3-3 3H42c-2 0-3-1-3-3s1-3 3-3zm0 11h22c2 0 3 1 3 3s-1 3-3 3H42c-2 0-3-1-3-3s1-3 3-3zm0 11h15c2 0 3 1 3 3s-1 3-3 3H42c-2 0-3-1-3-3s1-3 3-3zM81 15l2 7 7 2-7 2-2 7-2-7-7-2 7-2 2-7z"/>
+          </svg>
+          SVG
+          sed -i 's/brand-logo\.png/brand-logo.svg/g' mobile-app/app/src/main/assets/mobile/app.js
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Accept licenses and install SDK
+        shell: bash
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Validate mobile JavaScript
+        run: node --check mobile-app/app/src/main/assets/mobile/app.js
+
+      - name: Build debug APK
+        working-directory: mobile-app
+        run: gradle :app:assembleDebug --stacktrace
+
+      - name: Rename APK
+        run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Mobile-v0.2.0.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AI-Manuscript-Director-Mobile-v0.2.0-APK
+          path: AI-Manuscript-Director-Mobile-v0.2.0.apk
+          if-no-files-found: error
+          retention-days: 90

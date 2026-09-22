@@ -17,7 +17,7 @@ jobs:
       - name: Restore 0.2.0 source
         shell: bash
         run: |
-          cat mobile020tiny.part*.b64 | base64 --decode > mobile020-build.zip
+          cat mobile020tiny.part00.b64 mobile020tiny.part01.b64 mobile020tiny.part02.b64 mobile020tiny.part03a.b64 mobile020tiny.part03b.b64 mobile020tiny.part04.b64 mobile020tiny.part05.b64 mobile020tiny.part06.b64 | base64 --decode > mobile020-build.zip
           echo "8785abec837d646a4c4e069900053ec54cceb9b4260bb42e281269cecb6bf721  mobile020-build.zip" | sha256sum -c -
           unzip -q mobile020-build.zip
           mv mobile020_tiny mobile-app

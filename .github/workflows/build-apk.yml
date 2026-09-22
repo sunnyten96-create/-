@@ -1,4 +1,7 @@
-name: Build Android APK 0.2.0
+name: Build Android APK 0.2.1
+
+permissions:
+  contents: write
 
 on:
   workflow_dispatch:
@@ -14,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore 0.2.0 source
+      - name: Restore 0.2.0 base
         shell: bash
         run: |
           cat mobile020tiny.part00.b64 mobile020tiny.part01.b64 mobile020tiny.part02.b64 mobile020tiny.part03a.b64 mobile020tiny.part03b.b64 mobile020tiny.part04.b64 mobile020tiny.part05.b64 mobile020tiny.part06.b64 | base64 --decode > mobile020-build.zip
@@ -22,7 +25,7 @@ jobs:
           unzip -q mobile020-build.zip
           mv mobile020_tiny mobile-app
 
-      - name: Install official 8.7.5 brand logo
+      - name: Install official brand logo
         shell: bash
         run: |
           mkdir -p mobile-app/app/src/main/assets/mobile
@@ -30,6 +33,13 @@ jobs:
           base64 --decode brandlogo020.b64 > mobile-app/app/src/main/assets/mobile/brand-logo.png
           cp mobile-app/app/src/main/assets/mobile/brand-logo.png mobile-app/app/src/main/res/drawable-nodpi/brand_logo.png
           echo "702d966318e8b9c35bbb130645f2f51b89b39f611fb9a185d391e317f8d46cdd  mobile-app/app/src/main/assets/mobile/brand-logo.png" | sha256sum -c -
+
+      - name: Apply Mobile 0.2.1 overlay
+        shell: bash
+        run: |
+          cat mobile021overlay.groupA.b64 mobile021overlay.groupB.b64 mobile021overlay.groupC.b64 | base64 --decode > mobile021-overlay.zip
+          echo "b204e8f825aaa6aa4a7864f62f4ac148ffa4ee7262eb69626160ff2bedf4f347  mobile021-overlay.zip" | sha256sum -c -
+          unzip -o -q mobile021-overlay.zip -d mobile-app
 
       - uses: actions/setup-java@v5
         with:
@@ -50,17 +60,34 @@ jobs:
       - name: Validate mobile JavaScript
         run: node --check mobile-app/app/src/main/assets/mobile/app.js
 
+      - name: Verify version
+        shell: bash
+        run: |
+          grep -q "versionName '0.2.1'" mobile-app/app/build.gradle
+          grep -q "NovelCheckMobile/0.2.1" mobile-app/app/src/main/java/kr/novelcheck/mobile/MainActivity.java
+
       - name: Build debug APK
         working-directory: mobile-app
         run: gradle :app:assembleDebug --stacktrace
 
       - name: Rename APK
-        run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Mobile-v0.2.0.apk
+        run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Mobile-v0.2.1.apk
 
-      - name: Upload APK
+      - name: Upload Actions artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AI-Manuscript-Director-Mobile-v0.2.0-APK
-          path: AI-Manuscript-Director-Mobile-v0.2.0.apk
+          name: AI-Manuscript-Director-Mobile-v0.2.1-APK
+          path: AI-Manuscript-Director-Mobile-v0.2.1.apk
           if-no-files-found: error
           retention-days: 90
+
+      - name: Publish persistent GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if gh release view "v0.2.1" >/dev/null 2>&1; then
+            gh release upload "v0.2.1" AI-Manuscript-Director-Mobile-v0.2.1.apk --clobber
+          else
+            gh release create "v0.2.1" AI-Manuscript-Director-Mobile-v0.2.1.apk --title "AI 원고 디렉터 Mobile 0.2.1" --notes "Web 8.7.9 기반 모바일 UI/분석 리포트/알림 권한/성능 개선 빌드."
+          fi

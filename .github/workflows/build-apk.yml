@@ -1,4 +1,4 @@
-name: Build Android APK 0.2.2
+name: Build Android APK 0.3.0
 
 permissions:
   contents: write
@@ -48,6 +48,13 @@ jobs:
           echo "16388b596ee5ecbca8f8b465a6571b4c78e8d103d5178f5dd3a1612c622d0007  mobile022-overlay.zip" | sha256sum -c -
           unzip -o -q mobile022-overlay.zip -d mobile-app
 
+      - name: Apply Mobile 0.3.0 overlay
+        shell: bash
+        run: |
+          cat mobile030overlay.part00.b64 mobile030overlay.part01.b64 mobile030overlay.part02.b64 mobile030overlay.part03.b64 | base64 --decode > mobile030-overlay.zip
+          echo "1342b7bab7804cc511fc08d39381eb7b2375bc454d25d2111b4b6bc2a8df9231  mobile030-overlay.zip" | sha256sum -c -
+          unzip -o -q mobile030-overlay.zip -d mobile-app
+
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -67,24 +74,27 @@ jobs:
       - name: Validate mobile JavaScript
         run: node --check mobile-app/app/src/main/assets/mobile/app.js
 
-      - name: Verify version
+      - name: Verify 0.3.0 UX build
         shell: bash
         run: |
-          grep -q "versionName '0.2.2'" mobile-app/app/build.gradle
-          grep -q "NovelCheckMobile/0.2.2" mobile-app/app/src/main/java/kr/novelcheck/mobile/MainActivity.java
+          grep -q "versionName '0.3.0'" mobile-app/app/build.gradle
+          grep -q "NovelCheckMobile/0.3.0" mobile-app/app/src/main/java/kr/novelcheck/mobile/MainActivity.java
+          grep -q "작품 가져오기" mobile-app/app/src/main/assets/mobile/app.js
+          grep -q "보조편집자 의견" mobile-app/app/src/main/assets/mobile/app.js
+          grep -q "reader-comment" mobile-app/app/src/main/assets/mobile/app.js
 
       - name: Build debug APK
         working-directory: mobile-app
         run: gradle :app:assembleDebug --stacktrace
 
       - name: Rename APK
-        run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Mobile-v0.2.2.apk
+        run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Mobile-v0.3.0.apk
 
       - name: Upload Actions artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AI-Manuscript-Director-Mobile-v0.2.2-APK
-          path: AI-Manuscript-Director-Mobile-v0.2.2.apk
+          name: AI-Manuscript-Director-Mobile-v0.3.0-APK
+          path: AI-Manuscript-Director-Mobile-v0.3.0.apk
           if-no-files-found: error
           retention-days: 90
 
@@ -93,8 +103,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          if gh release view "v0.2.2" >/dev/null 2>&1; then
-            gh release upload "v0.2.2" AI-Manuscript-Director-Mobile-v0.2.2.apk --clobber
+          if gh release view "v0.3.0" >/dev/null 2>&1; then
+            gh release upload "v0.3.0" AI-Manuscript-Director-Mobile-v0.3.0.apk --clobber
           else
-            gh release create "v0.2.2" AI-Manuscript-Director-Mobile-v0.2.2.apk --title "AI 원고 디렉터 Mobile 0.2.2" --notes "Web 8.7.9 기반. 분석 대기열 진행률 정합성, 탭 위치/스크롤 보존, 리포트 렌더링 최적화, 수정메모·보조편집 모바일 UX 개선."
+            gh release create "v0.3.0" AI-Manuscript-Director-Mobile-v0.3.0.apk --title "AI 원고 디렉터 Mobile 0.3.0" --notes "0.1.x 읽기 중심 카드형 UX를 기반으로 재설계하고 0.2.x의 팔레트·아이콘·설정·Android 알림/상태바 대응을 통합했습니다. 보조편집자, 작품/회차 TXT·MD 가져오기, 7단계 대기열 진행률, 댓글 피드형 독자반응을 포함합니다."
           fi

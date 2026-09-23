@@ -1,4 +1,4 @@
-name: Build Android APK 0.3.2
+name: Build Android APK 0.3.3
 
 permissions:
   contents: write
@@ -69,10 +69,32 @@ jobs:
           echo "66e55a342341c75ad927f96fee3078b76e93ccceaf5b92b7f8cf539498ac3adb  mobile032-overlay.zip" | sha256sum -c -
           unzip -o -q mobile032-overlay.zip -d mobile-app
 
+      - name: Apply Mobile 0.3.3 UX overlay
+        shell: bash
+        run: |
+          cat mobile033overlay.part00.b64 mobile033overlay.part01.b64 mobile033overlay.part02.b64 mobile033overlay.part03.b64 mobile033overlay.part04.b64 | base64 --decode > mobile033-overlay.zip
+          echo "265b6fcb2e5087b1327d677f93095ca4883d1720de1d5d4baaa8c65e70c72560  mobile033-overlay.zip" | sha256sum -c -
+          unzip -o -q mobile033-overlay.zip -d mobile-app
+
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
+
+      - name: Restore stable Android signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: novelcheck-mobile-debug-signing-v1
+
+      - name: Ensure stable Android signing key
+        shell: bash
+        run: |
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkeypair -v               -keystore ~/.android/debug.keystore               -storepass android               -alias androiddebugkey               -keypass android               -keyalg RSA               -keysize 2048               -validity 10000               -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey | grep -E "SHA256|Valid from"
 
       - name: Accept licenses and install SDK
         shell: bash
@@ -85,31 +107,35 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Validate 0.3.2 UX
+      - name: Validate 0.3.3 UX
         shell: bash
         run: |
           node --check mobile-app/app/src/main/assets/mobile/app.js
-          grep -q "versionName '0.3.2'" mobile-app/app/build.gradle
-          grep -q "NovelCheckMobile/0.3.2" mobile-app/app/src/main/java/kr/novelcheck/mobile/MainActivity.java
-          grep -q "toggle-project-desc" mobile-app/app/src/main/assets/mobile/app.js
-          grep -q "comments-fab" mobile-app/app/src/main/assets/mobile/app.css
-          grep -q "data-action=\"open-manuscript\"" mobile-app/app/src/main/assets/mobile/app.js
-          grep -q "data-action=\"edit-current-chapter\"" mobile-app/app/src/main/assets/mobile/app.js
-          grep -q "보조편집자 의견" mobile-app/app/src/main/assets/mobile/app.js
-          ! grep -q "전체 분석 데이터" mobile-app/app/src/main/assets/mobile/app.js
+          grep -q "versionName '0.3.3'" mobile-app/app/build.gradle
+          grep -q "versionCode 7" mobile-app/app/build.gradle
+          grep -q "NovelCheckMobile/0.3.3" mobile-app/app/src/main/java/kr/novelcheck/mobile/MainActivity.java
+          grep -q "comments-inline-btn" mobile-app/app/src/main/assets/mobile/app.css
+          grep -q "memory-kind-card" mobile-app/app/src/main/assets/mobile/app.css
+          grep -q "commentsHubCompact" mobile-app/app/src/main/assets/mobile/app.js
+          grep -q "memory-edit-form" mobile-app/app/src/main/assets/mobile/app.js
 
       - name: Build debug APK
         working-directory: mobile-app
         run: gradle :app:assembleDebug --stacktrace
 
+      - name: Verify APK signature
+        shell: bash
+        run: |
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs mobile-app/app/build/outputs/apk/debug/app-debug.apk
+
       - name: Rename APK
-        run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Mobile-v0.3.2.apk
+        run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Mobile-v0.3.3.apk
 
       - name: Upload Actions artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AI-Manuscript-Director-Mobile-v0.3.2-APK
-          path: AI-Manuscript-Director-Mobile-v0.3.2.apk
+          name: AI-Manuscript-Director-Mobile-v0.3.3-APK
+          path: AI-Manuscript-Director-Mobile-v0.3.3.apk
           if-no-files-found: error
           retention-days: 90
 
@@ -118,8 +144,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          if gh release view "v0.3.2" >/dev/null 2>&1; then
-            gh release upload "v0.3.2" AI-Manuscript-Director-Mobile-v0.3.2.apk --clobber
+          if gh release view "v0.3.3" >/dev/null 2>&1; then
+            gh release upload "v0.3.3" AI-Manuscript-Director-Mobile-v0.3.3.apk --clobber
           else
-            gh release create "v0.3.2" AI-Manuscript-Director-Mobile-v0.3.2.apk --title "AI 원고 디렉터 Mobile 0.3.2" --notes "작품 소개 3줄 접기/펼치기, 라벤더·블루 중심 팔레트, 보조편집자 기본 접힘, 원고 읽기 팝업과 팝업 내 수정, 내부 영문/기술 데이터 노출 축소, 근거 문단 원고 이동, 우하단 댓글 플로팅 버튼을 적용했습니다."
+            gh release create "v0.3.3" AI-Manuscript-Director-Mobile-v0.3.3.apk               --title "AI 원고 디렉터 Mobile 0.3.3"               --notes "원고 보기 팝업 여백 제거, 댓글 버튼을 수정하기 옆으로 이동, 추가 분석 아래 댓글 항목 추가, 작품 기억 종류별 그룹/편집, 로그인 간격 개선. 0.3.3부터 GitHub Actions의 Android debug keystore를 고정 캐시하여 이후 버전의 덮어쓰기 업데이트 호환성을 유지합니다. 0.3.2에서 0.3.3으로 넘어갈 때는 서명키 전환 때문에 한 번 삭제 후 설치가 필요할 수 있습니다."
           fi

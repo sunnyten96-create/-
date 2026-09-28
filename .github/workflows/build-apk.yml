@@ -95,13 +95,66 @@ jobs:
           test -f mobile-app/app/src/main/assets/admin/app.js
           test ! -d mobile-app/app/src/main/java/kr/novelcheck/mobile
 
-      - name: Apply Admin 0.1.1 branding and score-format overlay
+      - name: Apply Admin 0.1.1 name icon score patch
         shell: bash
         run: |
-          cat admin011overlay.part00.b64 admin011overlay.part01.b64 admin011overlay.part02.b64 admin011overlay.part03.b64 admin011overlay.part04.b64 admin011overlay.part05.b64 admin011overlay.part06.b64 admin011overlay.part07.b64 admin011overlay.part08.b64 | base64 --decode > admin011-overlay.zip
-          echo "c04045f173c45cf9b3e300529703610ad86914a3671747f7474b8f161ef576ab  admin011-overlay.zip" | sha256sum -c -
-          unzip -o -q admin011-overlay.zip -d mobile-app
+          python - <<'PY'
+          from pathlib import Path
+          root=Path('mobile-app')
+          p=root/'app/build.gradle'
+          t=p.read_text()
+          t=t.replace("versionCode 1","versionCode 2").replace("versionName '0.1.0'","versionName '0.1.1'")
+          p.write_text(t)
 
+          p=root/'app/src/main/AndroidManifest.xml'
+          p.write_text(p.read_text().replace('android:label="AI 원고 디렉터 관리자"','android:label="디렉터 관리자"'))
+
+          p=root/'app/src/main/assets/admin/index.html'
+          p.write_text(p.read_text().replace('<title>AI 원고 디렉터 관리자</title>','<title>디렉터 관리자</title>'))
+
+          p=root/'app/src/main/assets/admin/app.js'
+          t=p.read_text()
+          if 'const score1=' not in t:
+              t=t.replace("const fmt=n=>Number(n||0).toLocaleString('ko-KR');",
+                          "const fmt=n=>Number(n||0).toLocaleString('ko-KR');\nconst score1=n=>n==null||n===''||!Number.isFinite(Number(n))?'—':Number(n).toFixed(1);")
+          t=t.replace('<h1>AI 원고 디렉터 관리자</h1>','<h1>디렉터 관리자</h1>')
+          t=t.replace("${r.score==null?'—':esc(r.score)}<small>/100</small>",
+                      "${score1(r.score)}<small>/100</small>")
+          p.write_text(t)
+
+          p=root/'app/src/main/java/kr/novelcheck/admin/MainActivity.java'
+          p.write_text(p.read_text().replace('NovelCheckAdmin/0.1.0','NovelCheckAdmin/0.1.1'))
+
+          p=root/'app/src/main/res/values/colors.xml'
+          p.write_text(p.read_text().replace('#6D55D9','#F5B92E').replace('#4834A6','#071730'))
+          PY
+
+          cat > mobile-app/app/src/main/res/drawable/app_icon.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <path android:fillColor="#F5B92E"
+                  android:pathData="M18,2 H90 C99,2 106,9 106,18 V90 C106,99 99,106 90,106 H18 C9,106 2,99 2,90 V18 C2,9 9,2 18,2 Z" />
+              <path android:fillColor="#071730"
+                  android:pathData="M20,32 C20,26 25,22 31,22 H47 C59,22 69,31 69,43 V78 C62,72 54,68 45,68 H31 C25,68 20,63 20,57 Z" />
+              <path android:fillColor="#071730"
+                  android:pathData="M70,43 L92,30 C97,27 101,30 101,35 V77 C101,82 97,85 92,82 L70,69 Z" />
+              <path android:fillColor="#F5B92E"
+                  android:pathData="M58,36 A12,12 0,1 1,58,60 A12,12 0,1 1,58,36" />
+              <path android:fillColor="#071730"
+                  android:pathData="M58,40 A8,8 0,1 1,58,56 A8,8 0,1 1,58,40" />
+              <path android:fillColor="#123A72"
+                  android:pathData="M28,34 H43 C46,34 48,36 48,39 V43 H32 C30,43 28,41 28,39 Z" />
+              <path android:fillColor="#123A72"
+                  android:pathData="M28,48 H43 C46,48 48,50 48,53 V57 H32 C30,57 28,55 28,53 Z" />
+              <path android:fillColor="#071730"
+                  android:pathData="M48,8 L51,14 L58,17 L51,20 L48,27 L45,20 L38,17 L45,14 Z" />
+          </vector>
+          EOF
+          cp mobile-app/app/src/main/res/drawable/app_icon.xml mobile-app/app/src/main/res/drawable/ic_launcher.xml
 
       - uses: actions/setup-java@v5
         with:
@@ -150,7 +203,8 @@ jobs:
           grep -q 'android:label="디렉터 관리자"' mobile-app/app/src/main/AndroidManifest.xml
           grep -q "const score1=" mobile-app/app/src/main/assets/admin/app.js
           grep -q "toFixed(1)" mobile-app/app/src/main/assets/admin/app.js
-          test -f mobile-app/app/src/main/res/drawable-nodpi/admin_brand_logo.png
+          grep -q '#F5B92E' mobile-app/app/src/main/res/drawable/app_icon.xml
+          grep -q '#071730' mobile-app/app/src/main/res/drawable/app_icon.xml
 
       - name: Build Admin debug APK
         working-directory: mobile-app

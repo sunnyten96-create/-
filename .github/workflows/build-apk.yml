@@ -1,4 +1,4 @@
-name: Build AI Manuscript Director Admin 0.1.1
+name: Build AI Manuscript Director Admin 0.2.0
 
 permissions:
   contents: write
@@ -6,7 +6,7 @@ permissions:
 on:
   workflow_dispatch:
   push:
-    branches: [ admin-app-v0.1.1 ]
+    branches: [ admin-app-v0.2.0 ]
 
 jobs:
   build:
@@ -206,6 +206,29 @@ jobs:
           grep -q '#F5B92E' mobile-app/app/src/main/res/drawable/app_icon.xml
           grep -q '#071730' mobile-app/app/src/main/res/drawable/app_icon.xml
 
+      - name: Apply Admin 0.2.0 / Web 9.1.0 patch
+        shell: bash
+        run: |
+          base64 --decode patch_admin020.py.gz.b64 | gzip -dc > patch_admin020.py
+          sed -i "s#root=Path('/mnt/data/app_update_20260929/admin020')#root=Path('mobile-app')#" patch_admin020.py
+          echo "97bba46d47ec56cec3200b219a0ddb1eed7d9860e2cddc3a25e90ada3de29602  patch_admin020.py" | sha256sum -c -
+          python patch_admin020.py
+
+      - name: Validate Admin 0.2.0 / Web 9.1.0 sync
+        shell: bash
+        run: |
+          node --check mobile-app/app/src/main/assets/admin/app.js
+          python -c "import xml.etree.ElementTree as ET; ET.parse('mobile-app/app/src/main/AndroidManifest.xml')"
+          grep -q "applicationId 'kr.novelcheck.admin'" mobile-app/app/build.gradle
+          grep -q "versionName '0.2.0'" mobile-app/app/build.gradle
+          grep -q "versionCode 3" mobile-app/app/build.gradle
+          grep -q "NovelCheckAdmin/0.2.0" mobile-app/app/src/main/java/kr/novelcheck/admin/MainActivity.java
+          grep -q "/platform-api/admin/access?fresh=1" mobile-app/app/src/main/assets/admin/app.js
+          grep -q "active-user-list" mobile-app/app/src/main/assets/admin/app.js
+          grep -q "serviceChanging" mobile-app/app/src/main/assets/admin/app.js
+          grep -q "onJsConfirm" mobile-app/app/src/main/java/kr/novelcheck/admin/MainActivity.java
+          grep -q "onJsPrompt" mobile-app/app/src/main/java/kr/novelcheck/admin/MainActivity.java
+
       - name: Build Admin debug APK
         working-directory: mobile-app
         run: gradle :app:assembleDebug --stacktrace
@@ -219,13 +242,13 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -q "package: name='kr.novelcheck.admin'"
 
       - name: Rename APK
-        run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Admin-v0.1.1.apk
+        run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Admin-v0.2.0.apk
 
       - name: Upload Actions artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AI-Manuscript-Director-Admin-v0.1.1-APK
-          path: AI-Manuscript-Director-Admin-v0.1.1.apk
+          name: AI-Manuscript-Director-Admin-v0.2.0-APK
+          path: AI-Manuscript-Director-Admin-v0.2.0.apk
           if-no-files-found: error
           retention-days: 90
 
@@ -234,10 +257,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          if gh release view "admin-v0.1.1" >/dev/null 2>&1; then
-            gh release upload "admin-v0.1.1" AI-Manuscript-Director-Admin-v0.1.1.apk --clobber
+          if gh release view "admin-v0.2.0" >/dev/null 2>&1; then
+            gh release upload "admin-v0.2.0" AI-Manuscript-Director-Admin-v0.2.0.apk --clobber
           else
-            gh release create "admin-v0.1.1" AI-Manuscript-Director-Admin-v0.1.1.apk \
-              --title "디렉터 관리자 0.1.1" \
-              --notes "Web 8.10.7 기준 관리자 전용 Android 앱 0.1.1. 앱 이름을 '디렉터 관리자'로 변경하고, 기존 AI 원고 디렉터 아이콘의 네이비/골드 인상을 반전한 관리자 전용 아이콘으로 교체했습니다. 연구자료 목록 점수는 소수점 한 자리로 고정 표시합니다. 관리자 기능과 연구자료 리포트 열람, 사용자/등급/사용량/운영 설정은 0.1.0과 동일하게 유지합니다. 패키지 kr.novelcheck.admin 및 고정 관리자 서명키를 유지하여 0.1.0 위에 업데이트 설치할 수 있습니다."
+            gh release create "admin-v0.2.0" AI-Manuscript-Director-Admin-v0.2.0.apk \
+              --title "디렉터 관리자 0.2.0" \
+              --notes "Web 9.1.0 기준 관리자 앱. 개요에서 현재 활성 작업실 수, 일반 사용자와 관리자/부관리자 활동, 대기 수와 최근 활성 계정을 확인할 수 있으며 약 15초 간격으로 개요 화면에서만 갱신합니다. 점검 모드 ON이 막히던 WebView confirm 문제를 Android 네이티브 확인창 브리지로 수정했고 alert/prompt도 함께 안정화했습니다. 연구자료 열람, 사용자/등급/사용량/운영 설정과 기존 패키지 및 고정 관리자 서명키는 유지합니다."
           fi

@@ -134,8 +134,8 @@ jobs:
         shell: bash
         run: |
           base64 --decode patch_mobile050.py.gz.b64 | gzip -dc > patch_mobile050.py
-          sed -i "s#root=Path('/mnt/data/app_update_20260929/mobile050')#root=Path('mobile-app')#" patch_mobile050.py
           echo "6c8e80d7ec873df4bac87d5f0bb61d87e51376be1db2a3d9f3e42daac6364797  patch_mobile050.py" | sha256sum -c -
+          sed -i "s#root=Path('/mnt/data/app_update_20260929/mobile050')#root=Path('mobile-app')#" patch_mobile050.py
           python patch_mobile050.py
 
       - name: Validate Mobile 0.5.0 / Web 9.1.0 sync

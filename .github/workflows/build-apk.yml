@@ -210,8 +210,8 @@ jobs:
         shell: bash
         run: |
           base64 --decode patch_admin020.py.gz.b64 | gzip -dc > patch_admin020.py
-          sed -i "s#root=Path('/mnt/data/app_update_20260929/admin020')#root=Path('mobile-app')#" patch_admin020.py
           echo "97bba46d47ec56cec3200b219a0ddb1eed7d9860e2cddc3a25e90ada3de29602  patch_admin020.py" | sha256sum -c -
+          sed -i "s#root=Path('/mnt/data/app_update_20260929/admin020')#root=Path('mobile-app')#" patch_admin020.py
           python patch_admin020.py
 
       - name: Validate Admin 0.2.0 / Web 9.1.0 sync

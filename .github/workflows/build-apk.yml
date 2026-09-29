@@ -170,7 +170,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: AI-Manuscript-Director-Mobile-v0.5.0-APK
-          path: AI-Manuscript-Director-Mobile-v0.4.0.apk
+          path: AI-Manuscript-Director-Mobile-v0.5.0.apk
           if-no-files-found: error
           retention-days: 90
 
@@ -180,7 +180,7 @@ jobs:
         shell: bash
         run: |
           if gh release view "v0.5.0" >/dev/null 2>&1; then
-            gh release upload "v0.5.0" AI-Manuscript-Director-Mobile-v0.4.0.apk --clobber
+            gh release upload "v0.5.0" AI-Manuscript-Director-Mobile-v0.5.0.apk --clobber
           else
-            gh release create "v0.5.0" AI-Manuscript-Director-Mobile-v0.4.0.apk               --title "AI 원고 디렉터 Mobile 0.5.0"               --notes "Web 9.1.0 동기화. 모바일 전용 디렉터 채팅을 추가하고 자동/빠른 대화/깊게 분석 모드, 작품·회차·리포트 문맥, 대화 기록, 분석 제안 카드와 실제 분석/재분석 실행 확인, 점수 엔진 변경 확인을 지원합니다. 기존 작품·리포트·대기열·알림·3개 테마와 최적화 구조를 유지하며, 고정 Android 서명키를 계속 사용합니다."
+            gh release create "v0.5.0" AI-Manuscript-Director-Mobile-v0.5.0.apk               --title "AI 원고 디렉터 Mobile 0.5.0"               --notes "Web 9.1.0 동기화. 모바일 전용 디렉터 채팅을 추가하고 자동/빠른 대화/깊게 분석 모드, 작품·회차·리포트 문맥, 대화 기록, 분석 제안 카드와 실제 분석/재분석 실행 확인, 점수 엔진 변경 확인을 지원합니다. 기존 작품·리포트·대기열·알림·3개 테마와 최적화 구조를 유지하며, 고정 Android 서명키를 계속 사용합니다."
           fi

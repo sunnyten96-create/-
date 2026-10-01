@@ -159,7 +159,18 @@ jobs:
         run: |
           cat mobile060patch.part00.b64 mobile060patch.part01.b64 mobile060patch.part02.b64 mobile060patch.part03.b64 mobile060patch.part04.b64 | base64 --decode | gzip -dc > mobile060.patch
           echo "37360f1c625e63c4ff65af32afdaee28c2c042c553eba733704a421337de27db  mobile060.patch" | sha256sum -c -
-          patch -d mobile-app -p1 < mobile060.patch
+          patch -d mobile-app -p1 < mobile060.patch || true
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('mobile-app/app/src/main/assets/mobile/app.js')
+          t=p.read_text()
+          t=t.replace("['이 리포트 핵심을 요약해줘','수정 우선순위를 정리해줘','근거를 바탕으로 깊게 분석해줘']","['이 편집점의 최소 수정안을 제안해줘','이 판단에 반론이 가능한지 검토해줘','근거를 바탕으로 깊게 분석해줘']")
+          t=t.replace("['이 작품의 최근 흐름을 정리해줘','최근 5화 분석 상태를 확인해줘','다음에 뭘 고치면 좋을지 알려줘']","['이 작품에서 점수가 가장 높은 회차는?','최근 흐름과 반복 편집점을 정리해줘','다음 수정 우선순위를 정해줘']")
+          t=t.replace("${state.projectTab==='report'?'<span>리포트 문맥</span>':''}<b>${directorModeLabel(state.directorMode)}</b>","${state.projectTab==='report'?'<span>리포트 문맥</span>':''}${state.directorFocus?\`<span class=\\\"focus-point\\\">편집점 · ${esc(state.directorFocus.label)}</span>\`:''}<b>${directorModeLabel(state.directorMode)}</b>")
+          t=t.replace("selectedText:visibleDirectorSelection()}})","selectedText:state.directorFocus?.selectedText||visibleDirectorSelection(),focusedSuggestionId:state.directorFocus?.focusedSuggestionId,selectedEvidence:state.directorFocus?.selectedEvidence}})")
+          p.write_text(t)
+          Path('mobile-app/app/src/main/assets/mobile/app.js.rej').unlink(missing_ok=True)
+          PY
 
       - name: Validate Mobile 0.6.0 / Web 9.3.1 sync
         shell: bash

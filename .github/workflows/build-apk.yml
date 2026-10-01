@@ -1,4 +1,4 @@
-name: Build Android APK 0.5.0
+name: Build Android APK 0.6.0
 
 permissions:
   contents: write
@@ -6,7 +6,7 @@ permissions:
 on:
   workflow_dispatch:
   push:
-    branches: [ mobile-app-v0.5.0 ]
+    branches: [ mobile-app-v0.6.0 ]
 
 jobs:
   build:
@@ -154,6 +154,29 @@ jobs:
           grep -q "onJsConfirm" mobile-app/app/src/main/java/kr/novelcheck/mobile/MainActivity.java
           grep -q "grid-template-columns:repeat(5" mobile-app/app/src/main/assets/mobile/app.css
 
+      - name: Apply Mobile 0.6.0 / Web 9.3.1 patch
+        shell: bash
+        run: |
+          cat mobile060patch.part00.b64 mobile060patch.part01.b64 mobile060patch.part02.b64 mobile060patch.part03.b64 mobile060patch.part04.b64 | base64 --decode | gzip -dc > mobile060.patch
+          echo "37360f1c625e63c4ff65af32afdaee28c2c042c553eba733704a421337de27db  mobile060.patch" | sha256sum -c -
+          patch -d mobile-app -p1 < mobile060.patch
+
+      - name: Validate Mobile 0.6.0 / Web 9.3.1 sync
+        shell: bash
+        run: |
+          node --check mobile-app/app/src/main/assets/mobile/app.js
+          python -c "import xml.etree.ElementTree as ET; ET.parse('mobile-app/app/src/main/AndroidManifest.xml')"
+          grep -q "applicationId 'kr.novelcheck.mobile'" mobile-app/app/build.gradle
+          grep -q "versionName '0.6.0'" mobile-app/app/build.gradle
+          grep -q "versionCode 10" mobile-app/app/build.gradle
+          grep -q "NovelCheckMobile/0.6.0" mobile-app/app/src/main/java/kr/novelcheck/mobile/MainActivity.java
+          grep -q "/platform-api/preferences" mobile-app/app/src/main/assets/mobile/app.js
+          grep -q "revision-history" mobile-app/app/src/main/assets/mobile/app.js
+          grep -q "editorial-exclusions" mobile-app/app/src/main/assets/mobile/app.js
+          grep -q "director-point" mobile-app/app/src/main/assets/mobile/app.js
+          grep -q "focusedSuggestionId" mobile-app/app/src/main/assets/mobile/app.js
+          grep -q "Mobile 0.6.0" mobile-app/app/src/main/assets/mobile/app.js
+
       - name: Build debug APK
         working-directory: mobile-app
         run: gradle :app:assembleDebug --stacktrace
@@ -164,13 +187,13 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs mobile-app/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Rename APK
-        run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Mobile-v0.5.0.apk
+        run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Mobile-v0.6.0.apk
 
       - name: Upload Actions artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AI-Manuscript-Director-Mobile-v0.5.0-APK
-          path: AI-Manuscript-Director-Mobile-v0.5.0.apk
+          name: AI-Manuscript-Director-Mobile-v0.6.0-APK
+          path: AI-Manuscript-Director-Mobile-v0.6.0.apk
           if-no-files-found: error
           retention-days: 90
 
@@ -179,8 +202,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          if gh release view "v0.5.0" >/dev/null 2>&1; then
-            gh release upload "v0.5.0" AI-Manuscript-Director-Mobile-v0.5.0.apk --clobber
+          if gh release view "v0.6.0" >/dev/null 2>&1; then
+            gh release upload "v0.6.0" AI-Manuscript-Director-Mobile-v0.6.0.apk --clobber
           else
-            gh release create "v0.5.0" AI-Manuscript-Director-Mobile-v0.5.0.apk               --title "AI 원고 디렉터 Mobile 0.5.0"               --notes "Web 9.1.0 동기화. 모바일 전용 디렉터 채팅을 추가하고 자동/빠른 대화/깊게 분석 모드, 작품·회차·리포트 문맥, 대화 기록, 분석 제안 카드와 실제 분석/재분석 실행 확인, 점수 엔진 변경 확인을 지원합니다. 기존 작품·리포트·대기열·알림·3개 테마와 최적화 구조를 유지하며, 고정 Android 서명키를 계속 사용합니다."
+            gh release create "v0.6.0" AI-Manuscript-Director-Mobile-v0.6.0.apk               --title "AI 원고 디렉터 Mobile 0.6.0"               --notes "Web 9.3.1 동기화. 평가 점수/등급/미표기 설정, 서비스 등급·일/월 사용량·Credit 표시, 수정본 기록 열람/비교, 편집점 단위 디렉터 질문과 다음 수정본 재제안 제외/복원 기능을 모바일 UI에 추가했습니다. 카드·리포트·디렉터 시트 디자인을 정리했으며 기존 작품·대기열·알림·테마와 고정 Android 서명키를 유지합니다."
           fi

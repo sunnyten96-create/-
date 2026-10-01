@@ -168,6 +168,7 @@ jobs:
           t=t.replace("['이 작품의 최근 흐름을 정리해줘','최근 5화 분석 상태를 확인해줘','다음에 뭘 고치면 좋을지 알려줘']","['이 작품에서 점수가 가장 높은 회차는?','최근 흐름과 반복 편집점을 정리해줘','다음 수정 우선순위를 정해줘']")
           t=t.replace("${state.projectTab==='report'?'<span>리포트 문맥</span>':''}<b>${directorModeLabel(state.directorMode)}</b>","${state.projectTab==='report'?'<span>리포트 문맥</span>':''}${state.directorFocus?\`<span class=\\\"focus-point\\\">편집점 · ${esc(state.directorFocus.label)}</span>\`:''}<b>${directorModeLabel(state.directorMode)}</b>")
           t=t.replace("selectedText:visibleDirectorSelection()}})","selectedText:state.directorFocus?.selectedText||visibleDirectorSelection(),focusedSuggestionId:state.directorFocus?.focusedSuggestionId,selectedEvidence:state.directorFocus?.selectedEvidence}})")
+          t=t.replace("\\\\`","`")
           p.write_text(t)
           Path('mobile-app/app/src/main/assets/mobile/app.js.rej').unlink(missing_ok=True)
           PY

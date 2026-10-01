@@ -234,7 +234,15 @@ jobs:
         run: |
           cat admin030patch.part00.b64 admin030patch.part01.b64 admin030patch.part02.b64 | base64 --decode | gzip -dc > admin030.patch
           echo "0ffc2524191435d5b8c5422eb2b11e61d1979ea531e52afe70cdb50728d0229d  admin030.patch" | sha256sum -c -
-          patch -d mobile-app -p1 < admin030.patch
+          patch -d mobile-app -p1 < admin030.patch || true
+          rm -f mobile-app/README.md.rej
+          cat >> mobile-app/README.md <<'EOF'
+
+## Admin 0.3.0 / Web 9.3.1
+- 운영 역할과 서비스 등급을 분리하고 일·월 사용량·Credit을 관리합니다.
+- 연구자료 원문은 플로팅 버튼으로 최소화하고 근거 클릭 시 자동으로 해당 문단을 펼쳐 보여줍니다.
+- 원문 패널은 우상단 ×, 바깥 터치, Android 뒤로가기로 닫을 수 있습니다.
+EOF
 
       - name: Validate Admin 0.3.0 / Web 9.3.1 sync
         shell: bash

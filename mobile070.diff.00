@@ -1,0 +1,121 @@
+diff -ruN base060/README.md build070/mobile/README.md
+--- base060/README.md	2026-10-01 01:58:43.000000000 +0000
++++ build070/mobile/README.md	2026-10-27 15:36:34.000000000 +0000
+@@ -1,39 +1,13 @@
+-# AI 원고 디렉터 Mobile 0.6.0
++# AI 원고 디렉터 Mobile 0.7.0
+ 
+-Android 모바일 전용 UI 클라이언트입니다. 서버는 **AI 원고 디렉터 Web 9.3.1** API를 사용하며 웹과 동일한 계정·작품·회차·분석 데이터를 사용합니다.
++AI 원고 디렉터 Web **9.6.12** 기준 Android 앱입니다. 기존 패키지 `kr.novelcheck.mobile`과 고정 서명을 유지합니다.
+ 
+-## 0.6.0 핵심
+-
+-- 평가 표시 `평가 점수 / 평가 등급 / 미표기` 동기화
+-- 디렉터의 작품·회차·리포트 문맥, 편집점 단위 질문, 자동/빠른 대화/깊게 분석
+-- 편집점 `다음 수정본에서 재제안하지 않기` 및 제외 관리/복원
+-- 회차 `수정본 기록` 열람과 두 기록 비교
+-- 9.3.1 역할/서비스 등급/일·월 사용량/Credit 계정 정보 표시
+-- 기존 작품·리포트·대기열·알림·3개 테마와 고정 Android 서명 유지
+-
+-## Android
+-
+-- applicationId: `kr.novelcheck.mobile`
+-- minSdk: 24
+-- targetSdk / compileSdk: 35
+-- versionCode: 10
+-- versionName: 0.6.0
+-
+-## 서버
+-
+-기본 서버 호스트:
+-
+-`https://novelcheck-a1.duckdns.org`
+-
+-모바일 HTML은 APK 내부 자산이지만 `https://novelcheck-a1.duckdns.org/__mobile__/` origin으로 제공해 기존 `wn_session` 쿠키와 `/api/*`, `/platform-api/*`를 same-origin으로 사용합니다.
+-
+-
+-## Mobile 0.5.0 / Web 9.1.0
+-- Web 9.1.0 Director assistant API synchronized.
+-- Mobile-native Director bottom sheet with Auto / Fast / Deep modes.
+-- Project/chapter/report context, 10-turn history and selected text forwarding.
+-- Director UI actions and verified analysis proposal cards.
+-- Reanalysis confirmation and score-engine mismatch confirmation added to mobile analysis flow.
+-- Native Android JS confirm/alert bridge added so destructive/reanalysis confirmations work consistently.
+-- Existing package `kr.novelcheck.mobile` and stable signing cache must remain unchanged.
++## 0.7.0 핵심
++- Web 9.6.12 동기화: 8단계 진행 표시, 독자 댓글 20/60 구조 대응
++- 편집자 메모 전용 상단 허브: 필수/고도화/추가 필터와 개수 표시
++- 카드 요약에는 문제·수정 방향만, 상세에는 원인·독자 영향·실행 단계·보존점·완료 기준을 계층화
++- 9.6.12의 중복 정리·미완료 경고·편집점 질문·재제안 제외를 보존
++- 기존 디렉터, 수정본 기록, 평가 표시, 작품/회차, 대기열, 알림, 테마 유지
+ 
++- versionCode: 11
++- versionName: 0.7.0
+diff -ruN base060/REGRESSION-0.7.0.md build070/mobile/REGRESSION-0.7.0.md
+--- base060/REGRESSION-0.7.0.md	1970-01-01 00:00:00.000000000 +0000
++++ build070/mobile/REGRESSION-0.7.0.md	2026-10-27 15:39:19.000000000 +0000
+@@ -0,0 +1,13 @@
++# Mobile 0.7.0 regression checklist
++
++기준: Web 9.6.12 / SE-4.7.8 계열 표시 계약.
++
++- 앱 버전: 0.7.0 / package `kr.novelcheck.mobile`
++- 기존 0.6.0 기능: 작품, 회차, 리포트, 디렉터, 수정본 기록, 편집점 제외/복원, 평가 표시, 대기열, 알림, 테마 유지
++- 편집자 메모: 전체/필수 수정/고도화/추가 제안 필터, 카테고리별 개수, 요약 우선 표시, 상세 접기/펼치기
++- 상세 항목: 근거, 관련 점수축, 원인, 독자 영향/작동 원리, 실행 단계, 수정 전략, 보존할 장점, 완료 기준
++- 기존 저장 메모를 새로 생성하지 않으며 저장된 필드만 표시
++- 편집점 질문/재제안 제외 기능 유지
++- 독자 반응 기본 표시 20개, 댓글 전용 서버 결과 60개와 호환
++- 8단계 진행 표시
++- JS syntax 및 AndroidManifest XML parse 통과
+diff -ruN base060/app/build.gradle build070/mobile/app/build.gradle
+--- base060/app/build.gradle	2026-10-01 01:49:20.000000000 +0000
++++ build070/mobile/app/build.gradle	2026-10-27 15:36:34.000000000 +0000
+@@ -10,8 +10,8 @@
+         applicationId 'kr.novelcheck.mobile'
+         minSdk 24
+         targetSdk 35
+-        versionCode 10
+-        versionName '0.6.0'
++        versionCode 11
++        versionName '0.7.0'
+     }
+ 
+     buildTypes {
+diff -ruN base060/app/src/main/assets/mobile/app.css build070/mobile/app/src/main/assets/mobile/app.css
+--- base060/app/src/main/assets/mobile/app.css	2026-10-01 01:58:12.000000000 +0000
++++ build070/mobile/app/src/main/assets/mobile/app.css	2026-10-27 15:36:34.000000000 +0000
+@@ -394,3 +394,15 @@
+ /* 0.6.0 · Web 9.3.1 editorial-point controls */
+ .editorial-point-actions{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px;margin-top:10px;padding-top:9px;border-top:1px solid var(--hairline)}.editorial-point-actions button{min-height:36px;border-radius:11px;padding:7px 9px;font-size:.53rem;font-weight:900;display:flex;align-items:center;justify-content:center;gap:5px}.point-question{background:var(--surface);border:1px solid var(--line);color:var(--blue)}.point-question .icon-svg{width:13px;height:13px}.point-exclusion{background:var(--surface-2);color:var(--muted);border:1px solid transparent}.point-exclusion.on{background:var(--amber-soft);color:#8a6514;border-color:color-mix(in srgb,var(--amber) 34%,var(--line))}.check-box{width:16px;height:16px;border-radius:5px;border:1px solid currentColor;display:grid;place-items:center;font-size:.48rem;flex:0 0 auto}.suggestion-detail.editorial-muted{border-color:color-mix(in srgb,var(--amber) 35%,var(--line))}.editorial-exclusion-panel{margin-top:12px;border:1px solid var(--line);border-radius:14px;padding:10px;background:var(--surface-2)}.editorial-exclusion-panel summary{font-size:.6rem;font-weight:900}.editorial-exclusion-note{font-size:.52rem;line-height:1.55;color:var(--muted);padding:8px 0}.excluded-rule{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;border-top:1px solid var(--hairline);padding:8px 0}.excluded-rule span{font-size:.56rem;line-height:1.45}.excluded-rule button{flex:0 0 auto;border:1px solid var(--line);border-radius:8px;padding:5px 7px;background:var(--surface);font-size:.5rem;font-weight:900;color:var(--muted)}.director-context .focus-point{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:var(--amber-soft);color:#8a6514}
+ @media(max-width:390px){.editorial-point-actions{grid-template-columns:1fr}.point-exclusion{justify-content:flex-start}}
++
++
++/* Mobile 0.7.0 · Web 9.6.12 — editorial memo readability */
++.editor-memo-hub{padding:0;overflow:hidden;border-color:color-mix(in srgb,var(--amber) 25%,var(--line));background:linear-gradient(180deg,color-mix(in srgb,var(--amber-soft) 24%,var(--surface)) 0,var(--surface) 150px)}
++.editor-memo-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:17px 16px 12px}.editor-memo-title{font-size:.92rem;font-weight:1000;letter-spacing:-.035em;margin-top:3px}.editor-memo-desc{font-size:.58rem;line-height:1.55;color:var(--muted);margin-top:4px;max-width:290px}.memo-total{min-width:50px;height:50px;border-radius:16px;display:flex;align-items:baseline;justify-content:center;gap:2px;background:var(--nav);color:#fff;font-size:1.1rem;font-weight:1000;padding-top:13px}.memo-total small{font-size:.5rem;opacity:.65}
++.memo-count-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:0 16px 12px}.memo-count-strip span{display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 5px;border-radius:11px;font-size:.53rem;font-weight:900;border:1px solid var(--hairline);background:var(--surface)}.memo-count-strip b{font-size:.68rem}.memo-count-strip .required{color:#bd2446;background:color-mix(in srgb,#ffe4e9 58%,var(--surface))}.memo-count-strip .refinement{color:#6d4bc2;background:color-mix(in srgb,#eee8ff 58%,var(--surface))}.memo-count-strip .legacy{color:#a55a13;background:color-mix(in srgb,#fff0df 58%,var(--surface))}
++.memo-warning{margin:0 16px 11px;padding:10px 11px;border-radius:12px;background:#fff7dc;border:1px solid #efd88a;color:#785a0b;font-size:.57rem;line-height:1.55}.memo-preserve{margin:0 16px 10px;border:1px solid color-mix(in srgb,#3fa56b 28%,var(--line));border-radius:13px;background:color-mix(in srgb,#e8f8ef 55%,var(--surface));overflow:hidden}.memo-preserve>summary{padding:10px 11px;font-size:.59rem;font-weight:950;color:#267548}.memo-preserve>summary b{float:right}.memo-preserve>div{border-top:1px solid color-mix(in srgb,#3fa56b 20%,var(--hairline));padding:4px 11px 9px}.preserve-row{padding:7px 0}.preserve-row p{font-size:.6rem;line-height:1.55;margin:0}
++.memo-filter-bar{display:flex;gap:6px;overflow:auto;padding:2px 16px 11px;scrollbar-width:none}.memo-filter-bar::-webkit-scrollbar{display:none}.memo-filter{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:7px 10px;font-size:.54rem;font-weight:950}.memo-filter b{margin-left:5px;font-size:.49rem;opacity:.65}.memo-filter.on{background:var(--nav);color:#fff;border-color:var(--nav)}.memo-filter.required.on{background:#c93658;border-color:#c93658}.memo-filter.refinement.on{background:#7658c9;border-color:#7658c9}.memo-filter.legacy.on{background:#c76d1d;border-color:#c76d1d}
++.memo-list{display:grid;gap:9px;padding:0 12px 14px}.memo-card{border:1px solid var(--line);border-radius:16px;background:var(--surface);overflow:hidden;box-shadow:0 3px 12px rgba(15,23,42,.035)}.memo-card.required{border-left:4px solid #d94c69}.memo-card.refinement{border-left:4px solid #8566d4}.memo-card.legacy{border-left:4px solid #d77c2b}.memo-card>summary{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:12px 12px 11px;cursor:pointer;list-style:none}.memo-card>summary::-webkit-details-marker{display:none}.memo-card-head{min-width:0;flex:1}.memo-card-badges{display:flex;align-items:center;gap:5px}.memo-kind,.memo-mini-badge{display:inline-flex;border-radius:7px;padding:3px 6px;font-size:.47rem;font-weight:1000}.memo-kind.required{background:#ffe8ed;color:#b92146}.memo-kind.refinement{background:#eee9ff;color:#6646bd}.memo-kind.legacy{background:#fff0df;color:#9f5611}.memo-mini-badge{background:var(--surface-2);color:var(--muted)}.memo-card-title{font-size:.72rem;line-height:1.45;font-weight:1000;letter-spacing:-.025em;margin-top:7px}.memo-card-preview{font-size:.58rem;line-height:1.55;color:var(--muted);margin-top:5px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}.memo-card-meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.memo-card-meta span{font-size:.47rem;color:var(--muted);background:var(--surface-2);border-radius:6px;padding:3px 5px}.memo-card>summary .detail-chevron{margin-top:3px;transition:transform .2s}.memo-card[open]>summary .detail-chevron{transform:rotate(180deg)}
++.memo-card-body{border-top:1px solid var(--hairline);padding:11px 12px 12px;display:grid;gap:9px}.memo-evidence-line{display:grid;gap:6px}.memo-evidence-line>b,.memo-axis-row>b{font-size:.49rem;color:var(--muted);font-weight:1000}.memo-axis-row{display:flex;flex-wrap:wrap;align-items:center;gap:5px}.memo-axis-row span{font-size:.49rem;padding:4px 6px;border-radius:7px;background:var(--surface-2);color:var(--muted);font-weight:850}.memo-block{padding:10px 11px;border-radius:12px;background:var(--surface-2);border:1px solid var(--hairline)}.memo-block>span{display:block;font-size:.49rem;color:var(--muted);font-weight:1000;margin-bottom:4px}.memo-block p{margin:0;font-size:.61rem;line-height:1.65;white-space:pre-line}.memo-block ol,.memo-block ul{margin:5px 0 0;padding-left:17px;font-size:.6rem;line-height:1.65}.memo-block.impact{background:color-mix(in srgb,var(--amber-soft) 45%,var(--surface));}.memo-block.strategy{background:color-mix(in srgb,var(--blue-soft) 38%,var(--surface));}.memo-block.preserve{background:color-mix(in srgb,#e7f7ee 55%,var(--surface));border-color:color-mix(in srgb,#54a776 25%,var(--hairline))}.memo-block.success{background:color-mix(in srgb,#e9f0ff 52%,var(--surface));border-color:color-mix(in srgb,#547fd4 22%,var(--hairline))}.memo-diff{display:grid;gap:7px}.revision-action-summary{border:1px solid var(--hairline);border-radius:12px;background:var(--surface-2);padding:10px}.revision-action-summary summary{font-size:.56rem;font-weight:900;color:var(--muted)}
++.editor-memo-hub .editorial-exclusion-panel{margin:0 12px 14px}.editor-memo-hub .editorial-point-actions{margin-top:2px}.editor-memo-hub .point-question{color:var(--blue)}
++@media(max-width:390px){.editor-memo-head{padding-left:13px;padding-right:13px}.memo-count-strip,.memo-filter-bar{padding-left:13px;padding-right:13px}.memo-list{padding-left:9px;padding-right:9px}.memo-card>summary{padding:11px 10px}.memo-card-body{padding-left:10px;padding-right:10px}}
+diff -ruN base060/app/src/main/assets/mobile/app.js build070/mobile/app/src/main/assets/mobile/app.js
+--- base060/app/src/main/assets/mobile/app.js	2026-10-01 01:58:12.000000000 +0000
++++ build070/mobile/app/src/main/assets/mobile/app.js	2026-10-27 15:36:34.000000000 +0000
+@@ -2,7 +2,7 @@
+ 'use strict';
+ const HOST='novelcheck-a1.duckdns.org';
+ const LS={theme:'novel-mobile-theme',font:'novel-mobile-font',notices:'novel-mobile-notices',native:'novel-mobile-native-notices',schema:'novel-mobile-storage-schema'};
+-const STORAGE_SCHEMA='5';
++const STORAGE_SCHEMA='6';
+ try{
+   if(localStorage.getItem(LS.schema)!==STORAGE_SCHEMA){
+     const keepTheme=localStorage.getItem(LS.theme),keepFont=localStorage.getItem(LS.font),keepNative=localStorage.getItem(LS.native);
+@@ -16,7 +16,7 @@
+ const app=document.getElementById('app'), toastRoot=document.getElementById('toast-root'), fileImport=document.getElementById('file-import');
+ const storedTheme=localStorage.getItem(LS.theme);
+ const initialTheme=['black','purple','night'].includes(storedTheme)?storedTheme:(storedTheme==='dark'?'night':storedTheme==='light'?'purple':'black');
+-const state={booting:true,user:null,meta:null,projects:[],selectedProject:null,chapters:[],acc:null,memory:null,selectedChapter:null,analysis:null,jobs:[],settings:null,usage:[],trash:[],announcements:[],announcementUnread:0,notices:[],tab:'library',noticeTab:'activity',projectTab:'chapters',reportTab:'overview',chapterFilter:'all',selectedChapterIds:new Set(),busy:false,error:null,sheet:null,poll:null,jobStatus:{},theme:initialTheme,fontScale:Number(localStorage.getItem(LS.font)||1),nativeNotices:localStorage.getItem(LS.native)!=='0',notificationPermission:'unknown',readerCommentLimit:16,queueRenderLimit:24,fileImportMode:'chapter',pendingImportFiles:[],expandedProjectDescriptions:new Set(),directorOpen:false,directorMode:'auto',directorBusy:false,directorError:'',directorThreads:{},directorActionStates:{},directorFocus:null,editorialExclusions:[],scoreDisplay:'score'};
++const state={booting:true,user:null,meta:null,projects:[],selectedProject:null,chapters:[],acc:null,memory:null,selectedChapter:null,analysis:null,jobs:[],settings:null,usage:[],trash:[],announcements:[],announcementUnread:0,notices:[],tab:'library',noticeTab:'activity',projectTab:'chapters',reportTab:'overview',chapterFilter:'all',selectedChapterIds:new Set(),busy:false,error:null,sheet:null,poll:null,jobStatus:{},theme:initialTheme,fontScale:Number(localStorage.getItem(LS.font)||1),nativeNotices:localStorage.getItem(LS.native)!=='0',notificationPermission:'unknown',readerCommentLimit:20,queueRenderLimit:24,fileImportMode:'chapter',pendingImportFiles:[],expandedProjectDescriptions:new Set(),directorOpen:false,directorMode:'auto',directorBusy:false,directorError:'',directorThreads:{},directorActionStates:{},directorFocus:null,editorialExclusions:[],scoreDisplay:'score',memoFilter:'all'};

@@ -1,0 +1,75 @@
+diff -ruN base030/README.md build070/admin/README.md
+--- base030/README.md	2026-10-01 01:58:43.000000000 +0000
++++ build070/admin/README.md	2026-10-27 15:36:58.000000000 +0000
+@@ -1,23 +1,13 @@
+-# 디렉터 관리자 Android 0.3.0
++# 디렉터 관리자 Android 0.4.0
+ 
+-AI 원고 디렉터 Web **9.3.1** 기준의 관리자 기능과 연구자료 열람 전용 Android 앱입니다.
++AI 원고 디렉터 Web **9.6.12** 기준 관리자·연구자료 전용 Android 앱입니다.
+ 
+-- applicationId: `kr.novelcheck.admin`
+-- versionName: `0.3.0`
+-- versionCode: `4`
+-- 최고 관리자(`admin`) 전용
+-- 기존 사용자 앱 `kr.novelcheck.mobile`과 동시 설치 가능
++## 0.4.0 핵심
++- Web 9.6.12 기준으로 버전 및 관리자 화면 문구 최신화
++- 기존 활성 작업실·사용자/등급/사용량/Credit·점검모드·연구자료 기능 유지
++- 연구자료 리포트에서 최신 편집자 메모 영역의 제목·본문·버튼 간격을 모바일 가독성에 맞게 보강
++- 원문 하단 플로팅 버튼, 근거 클릭 자동 원문 펼침, 우상단 × 닫기 유지
++- 패키지 `kr.novelcheck.admin`과 고정 관리자 서명키 유지
+ 
+-## 0.3.0 핵심
+-
+-- 9.3.1 계정 구조에 맞춰 역할/서비스 등급/일·월 사용량/Credit 분리
+-- 계정 설정 하단 시트에서 역할·등급·개인 일/월 한도·Credit 조정
+-- 운영자는 등급·Credit 대상에서 자동 제외
+-- 연구자료 리포트는 기본 전체폭으로 읽고, 원문은 하단 `원문` 플로팅 버튼으로 최소화
+-- 근거 `[Pxxxx]` 클릭 시 원문 자동 열림 + 해당 문단 이동/강조
+-- 원문 패널 우상단 `×`, 바깥 터치, Android 뒤로가기로 닫기
+-- 기존 활성 작업실 현황, 점검 모드 ON/OFF, 연구자료 승인/제외/삭제 유지
+-
+-## 중요한 구조
+-
+-앱은 `https://novelcheck-a1.duckdns.org/__admin_mobile__/` 경로만 APK 내부 asset으로 가로채고, `/platform-api/*`와 `/platform/report-viewer/*`는 서버로 그대로 요청합니다. 같은 origin과 기존 `wn_session` 인증 구조를 유지합니다.
++- versionCode: 5
++- versionName: 0.4.0
+diff -ruN base030/REGRESSION-ADMIN-0.4.0.md build070/admin/REGRESSION-ADMIN-0.4.0.md
+--- base030/REGRESSION-ADMIN-0.4.0.md	1970-01-01 00:00:00.000000000 +0000
++++ build070/admin/REGRESSION-ADMIN-0.4.0.md	2026-10-27 15:39:19.000000000 +0000
+@@ -0,0 +1,12 @@
++# Admin 0.4.0 regression checklist
++
++기준: Web 9.6.12.
++
++- 앱 버전: 0.4.0 / package `kr.novelcheck.admin`
++- 사용자/역할/서비스 등급/일·월 사용량/Credit 관리 유지
++- 현재 활성 작업실/사용자 현황 유지
++- 점검 모드 ON/OFF 유지
++- 연구자료 원문: 기본 최소화, `¶ 원문` 플로팅 버튼, 근거 클릭 시 자동 열림·해당 문단 이동·강조
++- 원문 패널: 우상단 X / 바깥 터치 / Android 뒤로가기 닫기
++- 연구자료 편집자 메모 영역의 카드 간격·타이포·필터 조작성 개선
++- JS syntax 및 AndroidManifest XML parse 통과
+diff -ruN base030/app/build.gradle build070/admin/app/build.gradle
+--- base030/app/build.gradle	2026-10-01 01:55:41.000000000 +0000
++++ build070/admin/app/build.gradle	2026-10-27 15:36:58.000000000 +0000
+@@ -10,8 +10,8 @@
+         applicationId 'kr.novelcheck.admin'
+         minSdk 24
+         targetSdk 35
+-        versionCode 4
+-        versionName '0.3.0'
++        versionCode 5
++        versionName '0.4.0'
+     }
+ 
+     buildTypes {
+diff -ruN base030/app/src/main/assets/admin/app.js build070/admin/app/src/main/assets/admin/app.js
+--- base030/app/src/main/assets/admin/app.js	2026-10-01 01:55:41.000000000 +0000
++++ build070/admin/app/src/main/assets/admin/app.js	2026-10-27 15:36:58.000000000 +0000
+@@ -34,7 +34,7 @@
+ function overviewView(){const s=state.snapshot,a=state.access||{};if(!s)return loading();const active=Array.isArray(a.active)?a.active:[],activeUsers=active.filter(x=>x.role==='user'),staffActive=active.filter(x=>x.role!=='user');const activeHtml=active.length?active.slice(0,8).map(x=>`<div class="active-user-row"><span class="presence-dot"></span><div><b>${esc(x.email||'계정')}</b><small>${roleLabel(x.role)} · 최근 확인 ${dateText(x.last_seen_at||x.lastSeenAt)}</small></div><span class="pill ${x.role==='admin'?'purple':x.role==='subadmin'?'amber':'green'}">${roleLabel(x.role)}</span></div>`).join(''):`<div class="presence-empty"><span class="presence-dot idle"></span><div><b>현재 활성 작업실 없음</b><small>사용자가 작업실을 열면 이곳에 표시됩니다.</small></div></div>`;return `<div class="section-head"><div><div class="section-kicker">ADMIN SNAPSHOT</div><div class="section-title">운영 개요</div><div class="section-desc">서비스 상태와 현재 작업실 사용 여부를 가볍게 확인합니다.</div></div></div><section class="card hero"><div class="hero-status"><div><div class="hero-version">Web ${esc(s.version||state.meta?.version||'—')}</div><div class="hero-engine">${esc(s.scoreEngine||'—')} · ${esc(s.promptVersion||'—')}</div></div><span class="pill ${s.serviceClosed?'red':'green'}">${s.serviceClosed?'점검 모드':'정상 운영'}</span></div></section><section class="card live-presence ${active.length?'is-live':''}"><div class="live-presence-head"><div><div class="kpi-label">지금 작업실 사용</div><div class="live-presence-title">${active.length?`현재 ${fmt(active.length)}개 작업실 사용 중`:'현재 사용 중인 작업실 없음'}</div><div class="kpi-sub">일반 사용자 ${fmt(activeUsers.length)} · 관리자/부관리자 ${fmt(staffActive.length)} · 대기 ${fmt(a.queueLength)}</div></div><span class="live-badge ${active.length?'on':''}"><i></i>${active.length?'사용 중':'대기'}</span></div><div class="active-user-list">${activeHtml}</div>${active.length>8?`<div class="tiny muted" style="margin-top:8px">외 ${fmt(active.length-8)}개 활성 작업실</div>`:''}</section><div class="grid"><div class="kpi"><div class="kpi-label">전체 사용자</div><div class="kpi-value">${fmt(s.totalUsers)}</div><div class="kpi-sub">관리자 ${fmt(s.roles?.admin)} · 부관리자 ${fmt(s.roles?.subadmin)}</div></div><div class="kpi"><div class="kpi-label">활성 작업실</div><div class="kpi-value">${fmt(a.activeCount)}</div><div class="kpi-sub">최대 ${fmt(a.maxConcurrentWorkspaces)} · 대기 ${fmt(a.queueLength)}</div></div><div class="kpi"><div class="kpi-label">점수 엔진</div><div class="kpi-value" style="font-size:17px">${esc(s.scoreEngine||'—')}</div><div class="kpi-sub">${esc(s.scoringPolicy||'')}</div></div><div class="kpi"><div class="kpi-label">평가 프롬프트</div><div class="kpi-value" style="font-size:14px">${esc(s.promptVersion||'—')}</div><div class="kpi-sub">새 분석 기준</div></div></div><section class="card more-card" style="margin-top:12px"><h3>빠른 작업</h3><p class="hint">관리자가 자주 쓰는 기능만 바로 이동합니다.</p><div class="btn-row"><button class="btn amber" data-action="tab" data-id="research">연구자료</button><button class="btn" data-action="tab" data-id="users">사용자 관리</button><button class="btn" data-action="tab" data-id="settings">운영 설정</button></div></section>`}
+ function filteredResearch(){let rows=[...(state.research?.samples||[])];const q=state.researchQ.trim().toLowerCase();if(q)rows=rows.filter(r=>[r.email,r.projectTitle,r.chapterTitle,r.project_id,r.chapter_id].some(v=>String(v||'').toLowerCase().includes(q)));if(state.researchStatus)rows=rows.filter(r=>r.calibration_status===state.researchStatus);if(state.researchVersions==='latest'){const m=new Map();for(const r of rows){const k=`${r.user_id}|${r.project_id}|${r.chapter_id}`;const p=m.get(k);if(!p||Number(r.revision_version||0)>Number(p.revision_version||0)||(Number(r.revision_version||0)===Number(p.revision_version||0)&&String(r.updated_at)>String(p.updated_at)))m.set(k,r)}rows=[...m.values()]}rows.sort((a,b)=>state.researchSort==='chapterAsc'?(Number(a.chapterNumber||999999)-Number(b.chapterNumber||999999))||String(a.projectTitle||'').localeCompare(String(b.projectTitle||''),'ko'):state.researchSort==='scoreDesc'?Number(b.score??-1)-Number(a.score??-1):String(b.updated_at||'').localeCompare(String(a.updated_at||'')));return rows}
+ function researchView(){const rows=filteredResearch(),c=state.research?.counts||{};return `<div class="section-head"><div><div class="section-kicker">RESEARCH LIBRARY</div><div class="section-title">연구자료</div><div class="section-desc">중앙 연구 사본을 찾고, 상태를 정리하고, 작업실 동일 리포트를 열람합니다.</div></div></div>${state.researchUserId?`<div class="notice warn">특정 사용자 자료만 표시 중입니다. <button class="btn small" data-action="clear-research-user">전체 보기</button></div>`:''}<div class="research-toolbar"><div class="search-line"><input id="research-q" placeholder="작품·회차·이메일 검색" value="${esc(state.researchQ)}"><button class="btn" data-action="research-search">검색</button></div><div class="filter-grid"><select id="research-status"><option value="">전체 상태</option><option value="unreviewed" ${state.researchStatus==='unreviewed'?'selected':''}>미검토</option><option value="approved" ${state.researchStatus==='approved'?'selected':''}>승인</option><option value="rejected" ${state.researchStatus==='rejected'?'selected':''}>제외</option></select><select id="research-versions"><option value="latest" ${state.researchVersions==='latest'?'selected':''}>최신본만</option><option value="all" ${state.researchVersions==='all'?'selected':''}>모든 수정본</option></select><select id="research-sort"><option value="updatedDesc" ${state.researchSort==='updatedDesc'?'selected':''}>최근 수정순</option><option value="chapterAsc" ${state.researchSort==='chapterAsc'?'selected':''}>회차순</option><option value="scoreDesc" ${state.researchSort==='scoreDesc'?'selected':''}>점수순</option></select></div></div><div class="grid" style="margin-bottom:12px"><div class="kpi"><div class="kpi-label">현재 표시</div><div class="kpi-value">${fmt(rows.length)}</div></div><div class="kpi"><div class="kpi-label">미검토</div><div class="kpi-value">${fmt(c.unreviewed)}</div></div><div class="kpi"><div class="kpi-label">승인</div><div class="kpi-value">${fmt(c.approved)}</div></div><div class="kpi"><div class="kpi-label">제외</div><div class="kpi-value">${fmt(c.rejected)}</div></div></div>${state.busy?loading():rows.length?rows.map(r=>`<article class="card research-card"><div class="research-main"><div class="research-top"><div><div class="row">${researchStatusPill(r.calibration_status)}<span class="pill purple">수정본 ${fmt(r.revision_version)}</span></div><div class="research-project">${esc(r.projectTitle||'제목 없는 작품')}</div><div class="research-chapter">${r.chapterNumber?`${fmt(r.chapterNumber)}화 · `:''}${esc(r.chapterTitle||'제목 없음')}</div><div class="research-meta">${esc(r.email||'')}<br>${dateText(r.updated_at)}${r.scoreEngine?` · ${esc(r.scoreEngine)}`:''}</div></div><div class="research-score">${score1(r.score)}<small>/100</small></div></div></div><div class="research-actions"><button class="view" data-action="research-view" data-id="${esc(r.id)}">리포트 열기</button><button class="approved" data-action="research-status" data-id="${esc(r.id)}" data-status="approved">승인</button><button class="rejected" data-action="research-status" data-id="${esc(r.id)}" data-status="rejected">제외</button><button class="delete" data-action="research-delete" data-id="${esc(r.id)}">삭제</button></div></article>`).join(''):`<div class="card empty">조건에 맞는 연구자료가 없습니다.</div>`}`}
+-function usersView(){let rows=[...(state.users?.users||[])];const q=state.userQ.trim().toLowerCase();if(q)rows=rows.filter(u=>String(u.email||'').toLowerCase().includes(q));if(state.userRole!=='all')rows=rows.filter(u=>u.role===state.userRole);const grouped=['admin','subadmin','user'];return `<div class="section-head"><div><div class="section-kicker">ACCOUNT CONTROL · 9.3.1</div><div class="section-title">사용자 관리</div><div class="section-desc">운영 역할과 서비스 등급을 분리하고, 일·월 사용량과 적립 Credit을 같은 화면에서 확인합니다.</div></div></div><div class="card user-toolbar"><div class="search-line"><input id="user-q" placeholder="이메일 검색" value="${esc(state.userQ)}"><button class="btn" data-action="user-search">검색</button></div><div class="segmented user-filter"><button class="segment ${state.userRole==='all'?'on':''}" data-action="user-role-filter" data-role="all">전체</button><button class="segment ${state.userRole==='admin'?'on':''}" data-action="user-role-filter" data-role="admin">관리자</button><button class="segment ${state.userRole==='subadmin'?'on':''}" data-action="user-role-filter" data-role="subadmin">부관리자</button><button class="segment ${state.userRole==='user'?'on':''}" data-action="user-role-filter" data-role="user">사용자</button></div></div>${state.busy?loading():grouped.map(role=>{const items=rows.filter(u=>u.role===role);if(!items.length)return'';return `<div class="role-group"><span>${roleLabel(role)}</span><b>${fmt(items.length)}</b></div><div class="user-list modern">${items.map(u=>{const op=!!u.isOperator||u.role!=='user',q=u.quota||{},daily=quotaLimitText(q.displayUsed??q.used,q.limit,q.unlimited),monthly=quotaLimitText(q.displayMonthlyUsed??q.monthlyUsed,q.monthlyLimit,op||q.monthlyLimit==null);return `<article class="card user-card modern"><div class="user-head"><div class="user-identity"><div class="email">${esc(u.email)}</div><div class="meta">가입 ${dateText(u.createdAt)} · 최근 ${dateText(u.lastLoginAt)}</div></div><div class="user-badges"><span class="pill ${role==='admin'?'red':role==='subadmin'?'purple':'blue'}">${roleLabel(role)}</span><span class="pill ${op?'':'amber'}">${op?'등급 없음':tierLabel(u.serviceTier)}</span></div></div><div class="account-metrics"><div><span>일일 사용</span><b>${daily}</b></div><div><span>월간 사용</span><b>${monthly}</b></div><div><span>적립 Credit</span><b>${op?'해당 없음':fmt(u.credits??q.credits??0)}</b></div><div><span>연구자료</span><b>${fmt(u.researchSampleCount)}건</b></div></div><div class="user-foot"><span class="tiny muted">${op?'운영자는 등급·Credit 차감 대상이 아닙니다.':`개인 한도 ${q.source==='override'?'직접 지정':'등급 기본값'} · API ${u.hasApiKey?'등록':'미등록'}`}</span><div class="btn-row compact"><button class="btn small primary" data-action="account-settings" data-id="${esc(u.id)}" data-email="${esc(u.email)}">계정 설정</button><button class="btn small" data-action="user-research" data-id="${esc(u.id)}">연구자료</button><button class="btn danger small" data-action="delete-user" data-id="${esc(u.id)}" data-email="${esc(u.email)}">삭제</but

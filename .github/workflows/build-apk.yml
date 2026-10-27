@@ -1,4 +1,4 @@
-name: Build AI Manuscript Director Admin 0.3.0
+name: Build AI Manuscript Director Admin 0.4.0
 
 permissions:
   contents: write
@@ -256,6 +256,30 @@ jobs:
           grep -q "/platform-api/admin/access?fresh=1" mobile-app/app/src/main/assets/admin/app.js
           grep -q "onJsConfirm" mobile-app/app/src/main/java/kr/novelcheck/admin/MainActivity.java
 
+      - name: Apply Admin 0.4.0 / Web 9.6.12 patch
+        shell: bash
+        run: |
+          cat admin040.diff.00 admin040.diff.01 admin040.diff.02 > admin040.patch
+          echo "26605782bb12ba2051ffe574f3684d09b6317aa923170f583833d16c9dacfc3f  admin040.patch" | sha256sum -c -
+          patch -d mobile-app -p1 < admin040.patch
+
+      - name: Validate Admin 0.4.0 / Web 9.6.12 sync
+        shell: bash
+        run: |
+          node --check mobile-app/app/src/main/assets/admin/app.js
+          python -c "import xml.etree.ElementTree as ET; ET.parse('mobile-app/app/src/main/AndroidManifest.xml')"
+          grep -q "applicationId 'kr.novelcheck.admin'" mobile-app/app/build.gradle
+          grep -q "versionName '0.4.0'" mobile-app/app/build.gradle
+          grep -q "versionCode 5" mobile-app/app/build.gradle
+          grep -q "NovelCheckAdmin/0.4.0" mobile-app/app/src/main/java/kr/novelcheck/admin/MainActivity.java
+          grep -q "ACCOUNT CONTROL · 9.6.12" mobile-app/app/src/main/assets/admin/app.js
+          grep -q "NovelResearchMobile.version==='0.4.0'" mobile-app/app/src/main/java/kr/novelcheck/admin/MainActivity.java
+          grep -q "novel-source-fab" mobile-app/app/src/main/java/kr/novelcheck/admin/MainActivity.java
+          grep -q "novel-source-close" mobile-app/app/src/main/java/kr/novelcheck/admin/MainActivity.java
+          grep -q "/platform-api/admin/access?fresh=1" mobile-app/app/src/main/assets/admin/app.js
+          grep -q "onJsConfirm" mobile-app/app/src/main/java/kr/novelcheck/admin/MainActivity.java
+          keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey | grep -q "C6:6A:25:FC:06:18:57:F2:0D:72:F7:E6:F9:51:B4:8F:0F:EB:1F:7A:14:B4:A9:B9:13:2B:A5:44:83:EC:96:C6"
+
       - name: Build Admin debug APK
         working-directory: mobile-app
         run: gradle :app:assembleDebug --stacktrace
@@ -269,13 +293,13 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -q "package: name='kr.novelcheck.admin'"
 
       - name: Rename APK
-        run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Admin-v0.3.0.apk
+        run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Admin-v0.4.0.apk
 
       - name: Upload Actions artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AI-Manuscript-Director-Admin-v0.3.0-APK
-          path: AI-Manuscript-Director-Admin-v0.3.0.apk
+          name: AI-Manuscript-Director-Admin-v0.4.0-APK
+          path: AI-Manuscript-Director-Admin-v0.4.0.apk
           if-no-files-found: error
           retention-days: 90
 
@@ -284,10 +308,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          if gh release view "admin-v0.3.0" >/dev/null 2>&1; then
-            gh release upload "admin-v0.3.0" AI-Manuscript-Director-Admin-v0.3.0.apk --clobber
+          if gh release view "admin-v0.4.0" >/dev/null 2>&1; then
+            gh release upload "admin-v0.4.0" AI-Manuscript-Director-Admin-v0.4.0.apk --clobber
           else
-            gh release create "admin-v0.3.0" AI-Manuscript-Director-Admin-v0.3.0.apk \
-              --title "디렉터 관리자 0.3.0" \
-              --notes "Web 9.3.1 기준 관리자 앱. 사용자 관리에서 운영 역할과 서비스 등급을 분리하고 일·월 사용량·Credit을 표시하며 계정 설정 하단 시트에서 역할·등급·개인 한도·Credit을 조정합니다. 연구자료 리포트는 기본 전체폭으로 표시하고 원문은 하단 플로팅 버튼으로 최소화했습니다. 근거 버튼을 누르면 원문 패널이 자동으로 열려 해당 문단으로 이동·강조되며 우상단 X, 바깥 터치, Android 뒤로가기로 닫을 수 있습니다. 기존 활성 작업실 현황, 점검 모드 ON/OFF, 연구자료 관리, 패키지와 고정 관리자 서명키를 유지합니다."
+            gh release create "admin-v0.4.0" AI-Manuscript-Director-Admin-v0.4.0.apk \
+              --title "디렉터 관리자 0.4.0" \
+              --notes "Web 9.6.12 기준 관리자 앱. 활성 작업실, 점검 모드, 사용자 역할·서비스 등급·일/월 사용량·Credit 관리와 연구자료 기능을 유지합니다. 연구자료 리포트의 최신 편집자 메모 영역을 모바일에서 읽기 쉽도록 간격·타이포·탭 조작성을 보강했고, 원문 플로팅 버튼과 근거 클릭 자동 펼침·문단 이동·강조, 우상단 X 닫기를 유지합니다. 기존 패키지와 고정 관리자 서명키를 유지합니다."
           fi

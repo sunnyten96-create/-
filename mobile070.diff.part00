@@ -1,0 +1,96 @@
+diff -ruN base060/README.md build070/mobile/README.md
+--- base060/README.md	2026-10-01 01:58:43.000000000 +0000
++++ build070/mobile/README.md	2026-10-27 15:36:34.000000000 +0000
+@@ -1,39 +1,13 @@
+-# AI 원고 디렉터 Mobile 0.6.0
++# AI 원고 디렉터 Mobile 0.7.0
+ 
+-Android 모바일 전용 UI 클라이언트입니다. 서버는 **AI 원고 디렉터 Web 9.3.1** API를 사용하며 웹과 동일한 계정·작품·회차·분석 데이터를 사용합니다.
++AI 원고 디렉터 Web **9.6.12** 기준 Android 앱입니다. 기존 패키지 `kr.novelcheck.mobile`과 고정 서명을 유지합니다.
+ 
+-## 0.6.0 핵심
+-
+-- 평가 표시 `평가 점수 / 평가 등급 / 미표기` 동기화
+-- 디렉터의 작품·회차·리포트 문맥, 편집점 단위 질문, 자동/빠른 대화/깊게 분석
+-- 편집점 `다음 수정본에서 재제안하지 않기` 및 제외 관리/복원
+-- 회차 `수정본 기록` 열람과 두 기록 비교
+-- 9.3.1 역할/서비스 등급/일·월 사용량/Credit 계정 정보 표시
+-- 기존 작품·리포트·대기열·알림·3개 테마와 고정 Android 서명 유지
+-
+-## Android
+-
+-- applicationId: `kr.novelcheck.mobile`
+-- minSdk: 24
+-- targetSdk / compileSdk: 35
+-- versionCode: 10
+-- versionName: 0.6.0
+-
+-## 서버
+-
+-기본 서버 호스트:
+-
+-`https://novelcheck-a1.duckdns.org`
+-
+-모바일 HTML은 APK 내부 자산이지만 `https://novelcheck-a1.duckdns.org/__mobile__/` origin으로 제공해 기존 `wn_session` 쿠키와 `/api/*`, `/platform-api/*`를 same-origin으로 사용합니다.
+-
+-
+-## Mobile 0.5.0 / Web 9.1.0
+-- Web 9.1.0 Director assistant API synchronized.
+-- Mobile-native Director bottom sheet with Auto / Fast / Deep modes.
+-- Project/chapter/report context, 10-turn history and selected text forwarding.
+-- Director UI actions and verified analysis proposal cards.
+-- Reanalysis confirmation and score-engine mismatch confirmation added to mobile analysis flow.
+-- Native Android JS confirm/alert bridge added so destructive/reanalysis confirmations work consistently.
+-- Existing package `kr.novelcheck.mobile` and stable signing cache must remain unchanged.
++## 0.7.0 핵심
++- Web 9.6.12 동기화: 8단계 진행 표시, 독자 댓글 20/60 구조 대응
++- 편집자 메모 전용 상단 허브: 필수/고도화/추가 필터와 개수 표시
++- 카드 요약에는 문제·수정 방향만, 상세에는 원인·독자 영향·실행 단계·보존점·완료 기준을 계층화
++- 9.6.12의 중복 정리·미완료 경고·편집점 질문·재제안 제외를 보존
++- 기존 디렉터, 수정본 기록, 평가 표시, 작품/회차, 대기열, 알림, 테마 유지
+ 
++- versionCode: 11
++- versionName: 0.7.0
+diff -ruN base060/REGRESSION-0.7.0.md build070/mobile/REGRESSION-0.7.0.md
+--- base060/REGRESSION-0.7.0.md	1970-01-01 00:00:00.000000000 +0000
++++ build070/mobile/REGRESSION-0.7.0.md	2026-10-27 15:39:19.000000000 +0000
+@@ -0,0 +1,13 @@
++# Mobile 0.7.0 regression checklist
++
++기준: Web 9.6.12 / SE-4.7.8 계열 표시 계약.
++
++- 앱 버전: 0.7.0 / package `kr.novelcheck.mobile`
++- 기존 0.6.0 기능: 작품, 회차, 리포트, 디렉터, 수정본 기록, 편집점 제외/복원, 평가 표시, 대기열, 알림, 테마 유지
++- 편집자 메모: 전체/필수 수정/고도화/추가 제안 필터, 카테고리별 개수, 요약 우선 표시, 상세 접기/펼치기
++- 상세 항목: 근거, 관련 점수축, 원인, 독자 영향/작동 원리, 실행 단계, 수정 전략, 보존할 장점, 완료 기준
++- 기존 저장 메모를 새로 생성하지 않으며 저장된 필드만 표시
++- 편집점 질문/재제안 제외 기능 유지
++- 독자 반응 기본 표시 20개, 댓글 전용 서버 결과 60개와 호환
++- 8단계 진행 표시
++- JS syntax 및 AndroidManifest XML parse 통과
+diff -ruN base060/app/build.gradle build070/mobile/app/build.gradle
+--- base060/app/build.gradle	2026-10-01 01:49:20.000000000 +0000
++++ build070/mobile/app/build.gradle	2026-10-27 15:36:34.000000000 +0000
+@@ -10,8 +10,8 @@
+         applicationId 'kr.novelcheck.mobile'
+         minSdk 24
+         targetSdk 35
+-        versionCode 10
+-        versionName '0.6.0'
++        versionCode 11
++        versionName '0.7.0'
+     }
+ 
+     buildTypes {
+diff -ruN base060/app/src/main/assets/mobile/app.css build070/mobile/app/src/main/assets/mobile/app.css
+--- base060/app/src/main/assets/mobile/app.css	2026-10-01 01:58:12.000000000 +0000
++++ build070/mobile/app/src/main/assets/mobile/app.css	2026-10-27 15:36:34.000000000 +0000
+@@ -394,3 +394,15 @@
+ /* 0.6.0 · Web 9.3.1 editorial-point controls */
+ .editorial-point-actions{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px;margin-top:10px;padding-top:9px;border-top:1px solid var(--hairline)}.editorial-point-actions button{min-height:36px;border-radius:11px;padding:7px 9px;font-size:.53rem;font-weight:900;display:flex;align-items:center;justify-content:center;gap:5px}.point-question{background:var(--surface);border:1px solid var(--line);color:var(--blue)}.point-question .icon-svg{width:13px;height:13px}.point-exclusion{background:var(--surface-2);color:var(--muted);border:1px solid transparent}.point-exclusion.on{background:var(--amber-soft);color:#8a6514;border-color:color-mix(in srgb,var(--amber) 34%,var(--line))}.check-box{width:16px;height:16px;border-radius:5px;border:1px solid currentColor;display:grid;place-items:center;font-size:.48rem;flex:0 0 auto}.suggestion-detail.editorial-muted{border-color:color-mix(in srgb,var(--amber) 35%,var(--line))}.editorial-exclusion-panel{margin-top:12px;border:1px solid var(--line);border-radius:14px;padding:10px;background:var(--surface-2)}.editorial-exclusion-panel summary{font-size:.6rem;font-weight:900}.editorial-exclusion-note{font-size:.52rem;line-height:1.55;color:var(--muted);padding:8px 0}.excluded-rule{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;border-top:1px solid var(--hairline);padding:8px 0}.excluded-rule span{font-size:.56rem;line-height:1.45}.excluded-rule button{flex:0 0 auto;border:1px solid var(--line);border-radius:8px;padding:5px 7px;background:var(--surface);font-size:.5rem;font-weight:900;color:var(--muted)}.director-context .focus-point{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:var(--amber-soft);color:#8a6514}
+ @media(max-width:390px){.editorial-point-actions{grid-template-columns:1fr}.point-exclusion{justify-content:flex-start}}
++
++
++/* Mobile 0.7.0 · Web 9.6.12 — editorial memo readability */
++.editor-memo-hub{padding:0;overflow:hidden;border-color:color-mix(in srgb,var(--amber) 25%,var(--line));background:linear-gradient(180deg,color-mix(in srgb,var(--amber-soft) 24%,var(--surface)) 0,var(--surface) 150px)}
++.editor-memo-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:17px 16px 12px}.editor-memo-title{font-size:.92rem;font-weight:1000;letter-spacing:-.035em;margin-top:3px}.editor-memo-

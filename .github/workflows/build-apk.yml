@@ -259,7 +259,11 @@ jobs:
       - name: Apply Admin 0.4.0 / Web 9.6.12 patch
         shell: bash
         run: |
-          cat admin040.diff.00 admin040.diff.01 admin040.diff.02 > admin040.patch
+          base64 --decode admin040.gz.00.b64 > /tmp/admin040.00.gz
+          base64 --decode admin040.gz.01.b64 > /tmp/admin040.01.gz
+          cat /tmp/admin040.00.gz /tmp/admin040.01.gz > admin040.patch.gz
+          echo "a4e6ce55c1f887c049e77bf5494f4210c16125d148462c99c6ae96064f1ac4ae  admin040.patch.gz" | sha256sum -c -
+          gzip -dc admin040.patch.gz > admin040.patch
           echo "26605782bb12ba2051ffe574f3684d09b6317aa923170f583833d16c9dacfc3f  admin040.patch" | sha256sum -c -
           patch -d mobile-app -p1 < admin040.patch
 

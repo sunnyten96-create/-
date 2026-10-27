@@ -192,14 +192,12 @@ jobs:
       - name: Apply Mobile 0.7.0 / Web 9.6.12 patch
         shell: bash
         run: |
-          cat mobile070.diff.00 mobile070.diff.01 mobile070.diff.02 mobile070.diff.03 mobile070.diff.04 mobile070.diff.05 > mobile070.patch
-          python - <<'PY'
-          from pathlib import Path
-          p=Path('mobile070.patch')
-          t=p.read_text()
-          t=t.replace(r'\xa0\x95','정')
-          p.write_text(t)
-          PY
+          base64 --decode mobile070.gz.00.b64 > /tmp/mobile070.00.gz
+          base64 --decode mobile070.gz.01.b64 > /tmp/mobile070.01.gz
+          base64 --decode mobile070.gz.02.b64 > /tmp/mobile070.02.gz
+          cat /tmp/mobile070.00.gz /tmp/mobile070.01.gz /tmp/mobile070.02.gz > mobile070.patch.gz
+          echo "d6bc22c559056eeace2736af1326cc77d1f5ec3476954405c6976a65c0f88902  mobile070.patch.gz" | sha256sum -c -
+          gzip -dc mobile070.patch.gz > mobile070.patch
           echo "9b80e9358b2580a3eea2357c0ff8a7d7a4ae8ffbc2ad54cfa969675dfaeb8389  mobile070.patch" | sha256sum -c -
           patch -d mobile-app -p1 < mobile070.patch
 

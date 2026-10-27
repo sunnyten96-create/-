@@ -1,4 +1,4 @@
-name: Build Android APK 0.6.0
+name: Build Android APK 0.7.0
 
 permissions:
   contents: write
@@ -6,7 +6,7 @@ permissions:
 on:
   workflow_dispatch:
   push:
-    branches: [ mobile-app-v0.6.0 ]
+    branches: [ mobile-app-v0.7.0 ]
 
 jobs:
   build:
@@ -189,6 +189,37 @@ jobs:
           grep -q "focusedSuggestionId" mobile-app/app/src/main/assets/mobile/app.js
           grep -q "Mobile 0.6.0" mobile-app/app/src/main/assets/mobile/app.js
 
+      - name: Apply Mobile 0.7.0 / Web 9.6.12 patch
+        shell: bash
+        run: |
+          cat mobile070.diff.00 mobile070.diff.01 mobile070.diff.02 mobile070.diff.03 mobile070.diff.04 mobile070.diff.05 > mobile070.patch
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('mobile070.patch')
+          t=p.read_text()
+          t=t.replace(r'\xa0\x95','정')
+          p.write_text(t)
+          PY
+          echo "9b80e9358b2580a3eea2357c0ff8a7d7a4ae8ffbc2ad54cfa969675dfaeb8389  mobile070.patch" | sha256sum -c -
+          patch -d mobile-app -p1 < mobile070.patch
+
+      - name: Validate Mobile 0.7.0 / Web 9.6.12 sync
+        shell: bash
+        run: |
+          node --check mobile-app/app/src/main/assets/mobile/app.js
+          python -c "import xml.etree.ElementTree as ET; ET.parse('mobile-app/app/src/main/AndroidManifest.xml')"
+          grep -q "applicationId 'kr.novelcheck.mobile'" mobile-app/app/build.gradle
+          grep -q "versionName '0.7.0'" mobile-app/app/build.gradle
+          grep -q "versionCode 11" mobile-app/app/build.gradle
+          grep -q "NovelCheckMobile/0.7.0" mobile-app/app/src/main/java/kr/novelcheck/mobile/MainActivity.java
+          grep -q "9.6.12" mobile-app/app/src/main/assets/mobile/app.js
+          grep -q "editor-memo-hub" mobile-app/app/src/main/assets/mobile/app.css
+          grep -q "memo-filter" mobile-app/app/src/main/assets/mobile/app.js
+          grep -q "EDITOR_MEMO_INCOMPLETE" mobile-app/app/src/main/assets/mobile/app.js
+          grep -q "readerCommentLimit:20" mobile-app/app/src/main/assets/mobile/app.js
+          grep -q "length:8" mobile-app/app/src/main/assets/mobile/app.js
+          keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey | grep -q "E4:D0:03:FB:94:75:46:26:41:22:9A:5E:1B:C6:3A:08:AB:08:C6:CF:EB:5C:2C:B1:56:82:77:37:15:71:09:87"
+
       - name: Build debug APK
         working-directory: mobile-app
         run: gradle :app:assembleDebug --stacktrace
@@ -199,13 +230,13 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs mobile-app/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Rename APK
-        run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Mobile-v0.6.0.apk
+        run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Mobile-v0.7.0.apk
 
       - name: Upload Actions artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AI-Manuscript-Director-Mobile-v0.6.0-APK
-          path: AI-Manuscript-Director-Mobile-v0.6.0.apk
+          name: AI-Manuscript-Director-Mobile-v0.7.0-APK
+          path: AI-Manuscript-Director-Mobile-v0.7.0.apk
           if-no-files-found: error
           retention-days: 90
 
@@ -214,8 +245,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          if gh release view "v0.6.0" >/dev/null 2>&1; then
-            gh release upload "v0.6.0" AI-Manuscript-Director-Mobile-v0.6.0.apk --clobber
+          if gh release view "v0.7.0" >/dev/null 2>&1; then
+            gh release upload "v0.7.0" AI-Manuscript-Director-Mobile-v0.7.0.apk --clobber
           else
-            gh release create "v0.6.0" AI-Manuscript-Director-Mobile-v0.6.0.apk               --title "AI 원고 디렉터 Mobile 0.6.0"               --notes "Web 9.3.1 동기화. 평가 점수/등급/미표기 설정, 서비스 등급·일/월 사용량·Credit 표시, 수정본 기록 열람/비교, 편집점 단위 디렉터 질문과 다음 수정본 재제안 제외/복원 기능을 모바일 UI에 추가했습니다. 카드·리포트·디렉터 시트 디자인을 정리했으며 기존 작품·대기열·알림·테마와 고정 Android 서명키를 유지합니다."
+            gh release create "v0.7.0" AI-Manuscript-Director-Mobile-v0.7.0.apk               --title "AI 원고 디렉터 Mobile 0.7.0"               --notes "Web 9.6.12 동기화. 8단계 진행 표시와 독자 반응 20/60 구조를 반영하고, 편집자 메모를 전체/필수/고도화/추가 필터와 요약 우선 카드로 재설계했습니다. 상세에는 원인·독자 영향·원문/권장 수정·실행 단계·수정 전략·보존점·완료 기준을 계층적으로 표시합니다. 기존 디렉터·수정본 기록·재제안 제외·평가 표시·대기열·알림·테마와 고정 Android 서명키를 유지합니다."
           fi

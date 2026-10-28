@@ -312,6 +312,32 @@ jobs:
           grep -q "9.7.3" mobile-app/app/src/main/assets/admin/app.js
           keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey | grep -q "D3:1C:D7:C5:F2:B3:4D:48:37:0F:F9:4B:50:19:26:6D:2D:25:49:34:F9:C4:17:E9:9B:DB:28:B1:DE:C7:DF:89"
           
+      - name: Pin actual APK signing to restored keystore
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('mobile-app/app/build.gradle')
+          t=p.read_text()
+          assert 'signingConfigs {' not in t
+          t=t.replace('android {\n', '''android {
+              signingConfigs {
+                  debug {
+                      storeFile file(System.getProperty('user.home') + '/.android/debug.keystore')
+                      storePassword 'android'
+                      keyAlias 'androiddebugkey'
+                      keyPassword 'android'
+                  }
+              }
+          ''', 1)
+          t=t.replace('    buildTypes {\n', '''    buildTypes {
+                  debug {
+                      signingConfig signingConfigs.debug
+                  }
+          ''', 1)
+          p.write_text(t)
+          PY
+
       - name: Build Admin debug APK
         working-directory: mobile-app
         run: gradle :app:assembleDebug --stacktrace
@@ -323,6 +349,8 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -5
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -q "package: name='kr.novelcheck.admin'"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs mobile-app/app/build/outputs/apk/debug/app-debug.apk | grep -Fqi "Signer #1 certificate SHA-256 digest: d31cd7c5f2b34d48370ff94b5019266d2d254934f9c417e99bdb28b1dec7df89"
+          echo "APK signer strictly matches cached key: d31cd7c5f2b34d48370ff94b5019266d2d254934f9c417e99bdb28b1dec7df89"
 
       - name: Rename APK
         run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Admin-v0.5.0.apk

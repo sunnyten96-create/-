@@ -1,4 +1,4 @@
-name: Build Android APK 0.7.0
+name: Build Android APK 0.8.0
 
 permissions:
   contents: write
@@ -217,9 +217,33 @@ jobs:
             echo "SIGNING_COMPATIBLE_WITH_PREVIOUS=true"
           else
             echo "SIGNING_COMPATIBLE_WITH_PREVIOUS=false"
-            echo "::warning::Signing key differs from existing Mobile APK; update installation may require reinstall."
+            echo "::error::Wrong Mobile signer; refusing release."; exit 1
           fi
 
+      - name: Apply Mobile 0.8.0 / Web 9.7.3 optimization
+        shell: bash
+        run: |
+          base64 --decode mobile080_apply.py.gz.b64 | gzip -dc > /tmp/mobile080_apply.py
+          echo "a233460ecdef48312bbf6fd6b222f5573d9e16dd793352adbb4358a64266d536  /tmp/mobile080_apply.py" | sha256sum --check
+          python /tmp/mobile080_apply.py
+          sed -i 's/현재: SE-4.6/현재: 최신 서버 엔진/g' mobile-app/app/src/main/assets/mobile/app.js
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('mobile-app/README.md')
+          p.write_text('# AI 원고 디렉터 Mobile 0.8.0\n\nWeb 9.7.3 대응 / 분석 완료·실패 저전력 백그라운드 확인 / 기존 기능 유지.\n')
+          PY
+
+          node --check mobile-app/app/src/main/assets/mobile/app.js
+          python -c "import xml.etree.ElementTree as ET; ET.parse('mobile-app/app/src/main/AndroidManifest.xml')"
+          grep -q "applicationId 'kr.novelcheck.mobile'" mobile-app/app/build.gradle
+          grep -q "versionName '0.8.0'" mobile-app/app/build.gradle
+          grep -q "versionCode 12" mobile-app/app/build.gradle
+          grep -q "android.app.job.JobService" mobile-app/app/src/main/java/kr/novelcheck/mobile/BackgroundAnalysisJob.java
+          grep -q "JobScheduler" mobile-app/app/src/main/java/kr/novelcheck/mobile/BackgroundAnalysisJob.java
+          grep -q "NovelCheckMobile/0.8.0" mobile-app/app/src/main/java/kr/novelcheck/mobile/MainActivity.java
+          grep -q "9.7.3" mobile-app/app/src/main/assets/mobile/app.js
+          keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey | grep -q "E4:D0:03:FB:94:75:46:26:41:22:9A:5E:1B:C6:3A:08:AB:08:C6:CF:EB:5C:2C:B1:56:82:77:37:15:71:09:87"
+          
       - name: Build debug APK
         working-directory: mobile-app
         run: gradle :app:assembleDebug --stacktrace
@@ -230,13 +254,13 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs mobile-app/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Rename APK
-        run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Mobile-v0.7.0.apk
+        run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Mobile-v0.8.0.apk
 
       - name: Upload Actions artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AI-Manuscript-Director-Mobile-v0.7.0-APK
-          path: AI-Manuscript-Director-Mobile-v0.7.0.apk
+          name: AI-Manuscript-Director-Mobile-v0.8.0-APK
+          path: AI-Manuscript-Director-Mobile-v0.8.0.apk
           if-no-files-found: error
           retention-days: 90
 
@@ -245,8 +269,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          if gh release view "v0.7.0" >/dev/null 2>&1; then
-            gh release upload "v0.7.0" AI-Manuscript-Director-Mobile-v0.7.0.apk --clobber
+          if gh release view "v0.8.0" >/dev/null 2>&1; then
+            gh release upload "v0.8.0" AI-Manuscript-Director-Mobile-v0.8.0.apk --clobber
           else
-            gh release create "v0.7.0" AI-Manuscript-Director-Mobile-v0.7.0.apk               --title "AI 원고 디렉터 Mobile 0.7.0"               --notes "Web 9.6.12 동기화. 8단계 진행 표시와 독자 반응 20/60 구조를 반영하고, 편집자 메모를 전체/필수/고도화/추가 필터와 요약 우선 카드로 재설계했습니다. 상세에는 원인·독자 영향·원문/권장 수정·실행 단계·수정 전략·보존점·완료 기준을 계층적으로 표시합니다. 기존 디렉터·수정본 기록·재제안 제외·평가 표시·대기열·알림·테마와 고정 Android 서명키를 유지합니다."
+            gh release create "v0.8.0" AI-Manuscript-Director-Mobile-v0.8.0.apk               --title "AI 원고 디렉터 Mobile 0.8.0"               --notes "Web 9.7.3 기준 Mobile 0.8.0. 앱 화면 종료 후 진행 분석만 Android JobScheduler로 최소 30분 후 저빈도 확인하고 완료/실패 알림을 표시합니다. 상시 서비스, WakeLock, 정확 알람은 사용하지 않습니다. 절전 정책에 따라 지연될 수 있으며 실시간 FCM 푸시는 별도 서버 설정이 필요합니다."
           fi

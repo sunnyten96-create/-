@@ -289,11 +289,11 @@ jobs:
           grep -q "novel-source-close" mobile-app/app/src/main/java/kr/novelcheck/admin/MainActivity.java
           grep -q "/platform-api/admin/access?fresh=1" mobile-app/app/src/main/assets/admin/app.js
           grep -q "onJsConfirm" mobile-app/app/src/main/java/kr/novelcheck/admin/MainActivity.java
-          if keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey | grep -q "C6:6A:25:FC:06:18:57:F2:0D:72:F7:E6:F9:51:B4:8F:0F:EB:1F:7A:14:B4:A9:B9:13:2B:A5:44:83:EC:96:C6"; then
-            echo "SIGNING_COMPATIBLE_WITH_PREVIOUS=true"
+          if keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey | grep -q "D3:1C:D7:C5:F2:B3:4D:48:37:0F:F9:4B:50:19:26:6D:2D:25:49:34:F9:C4:17:E9:9B:DB:28:B1:DE:C7:DF:89"; then
+            echo "SIGNING_COMPATIBLE_WITH_PUBLISHED_0.4.0=true"
           else
-            echo "SIGNING_COMPATIBLE_WITH_PREVIOUS=false"
-            echo "::error::Wrong Admin signer; refusing release."; exit 1
+            echo "SIGNING_COMPATIBLE_WITH_PUBLISHED_0.4.0=false"
+            echo "::error::Signer differs from published Admin v0.4.0; refusing release."; exit 1
           fi
 
       - name: Apply Admin 0.5.0 / Web 9.7.3 optimization
@@ -310,7 +310,7 @@ jobs:
           grep -q "versionCode 6" mobile-app/app/build.gradle
           grep -q "NovelCheckAdmin/0.5.0" mobile-app/app/src/main/java/kr/novelcheck/admin/MainActivity.java
           grep -q "9.7.3" mobile-app/app/src/main/assets/admin/app.js
-          keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey | grep -q "C6:6A:25:FC:06:18:57:F2:0D:72:F7:E6:F9:51:B4:8F:0F:EB:1F:7A:14:B4:A9:B9:13:2B:A5:44:83:EC:96:C6"
+          keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey | grep -q "D3:1C:D7:C5:F2:B3:4D:48:37:0F:F9:4B:50:19:26:6D:2D:25:49:34:F9:C4:17:E9:9B:DB:28:B1:DE:C7:DF:89"
           
       - name: Build Admin debug APK
         working-directory: mobile-app

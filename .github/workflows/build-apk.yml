@@ -213,11 +213,11 @@ jobs:
           grep -q "EDITOR_MEMO_INCOMPLETE" mobile-app/app/src/main/assets/mobile/app.js
           grep -q "readerCommentLimit:20" mobile-app/app/src/main/assets/mobile/app.js
           grep -q "length:8" mobile-app/app/src/main/assets/mobile/app.js
-          if keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey | grep -q "E4:D0:03:FB:94:75:46:26:41:22:9A:5E:1B:C6:3A:08:AB:08:C6:CF:EB:5C:2C:B1:56:82:77:37:15:71:09:87"; then
-            echo "SIGNING_COMPATIBLE_WITH_PREVIOUS=true"
+          if keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey | grep -q "F4:15:82:93:FD:86:98:B0:63:18:7A:31:9D:C4:14:68:76:2F:E1:7B:A8:CD:CA:32:2C:6D:9B:36:5F:D4:6A:C4"; then
+            echo "SIGNING_COMPATIBLE_WITH_PUBLISHED_0.7.0=true"
           else
-            echo "SIGNING_COMPATIBLE_WITH_PREVIOUS=false"
-            echo "::error::Wrong Mobile signer; refusing release."; exit 1
+            echo "SIGNING_COMPATIBLE_WITH_PUBLISHED_0.7.0=false"
+            echo "::error::Signer differs from published Mobile v0.7.0; refusing release."; exit 1
           fi
 
       - name: Apply Mobile 0.8.0 / Web 9.7.3 optimization
@@ -242,7 +242,7 @@ jobs:
           grep -q "JobScheduler" mobile-app/app/src/main/java/kr/novelcheck/mobile/BackgroundAnalysisJob.java
           grep -q "NovelCheckMobile/0.8.0" mobile-app/app/src/main/java/kr/novelcheck/mobile/MainActivity.java
           grep -q "9.7.3" mobile-app/app/src/main/assets/mobile/app.js
-          keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey | grep -q "E4:D0:03:FB:94:75:46:26:41:22:9A:5E:1B:C6:3A:08:AB:08:C6:CF:EB:5C:2C:B1:56:82:77:37:15:71:09:87"
+          keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey | grep -q "F4:15:82:93:FD:86:98:B0:63:18:7A:31:9D:C4:14:68:76:2F:E1:7B:A8:CD:CA:32:2C:6D:9B:36:5F:D4:6A:C4"
           
       - name: Build debug APK
         working-directory: mobile-app

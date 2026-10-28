@@ -259,12 +259,10 @@ jobs:
       - name: Apply Admin 0.4.0 / Web 9.6.12 patch
         shell: bash
         run: |
-          base64 --decode admin040.gz.00.b64 > /tmp/admin040.00.gz
-          base64 --decode admin040.gz.01.b64 > /tmp/admin040.01.gz
-          cat /tmp/admin040.00.gz /tmp/admin040.01.gz > admin040.patch.gz
-          echo "a4e6ce55c1f887c049e77bf5494f4210c16125d148462c99c6ae96064f1ac4ae  admin040.patch.gz" | sha256sum -c -
+          cat a040_safe_00.b64 a040_safe_01.b64 a040_safe_02.b64 | base64 --decode > admin040.patch.gz
+          echo "135ab8a03e40312ac82d0591b04385be73113f769e8a9953f7a6e4fa9bca5d13  admin040.patch.gz" | sha256sum -c -
           gzip -dc admin040.patch.gz > admin040.patch
-          echo "26605782bb12ba2051ffe574f3684d09b6317aa923170f583833d16c9dacfc3f  admin040.patch" | sha256sum -c -
+          echo "66ea756973981cbaeb0ebb26d1469c56304fc7913de8d42bf3ef2b82edd1496b  admin040.patch" | sha256sum -c -
           patch -d mobile-app -p1 < admin040.patch
 
       - name: Validate Admin 0.4.0 / Web 9.6.12 sync
@@ -282,7 +280,12 @@ jobs:
           grep -q "novel-source-close" mobile-app/app/src/main/java/kr/novelcheck/admin/MainActivity.java
           grep -q "/platform-api/admin/access?fresh=1" mobile-app/app/src/main/assets/admin/app.js
           grep -q "onJsConfirm" mobile-app/app/src/main/java/kr/novelcheck/admin/MainActivity.java
-          keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey | grep -q "C6:6A:25:FC:06:18:57:F2:0D:72:F7:E6:F9:51:B4:8F:0F:EB:1F:7A:14:B4:A9:B9:13:2B:A5:44:83:EC:96:C6"
+          if keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey | grep -q "C6:6A:25:FC:06:18:57:F2:0D:72:F7:E6:F9:51:B4:8F:0F:EB:1F:7A:14:B4:A9:B9:13:2B:A5:44:83:EC:96:C6"; then
+            echo "SIGNING_COMPATIBLE_WITH_PREVIOUS=true"
+          else
+            echo "SIGNING_COMPATIBLE_WITH_PREVIOUS=false"
+            echo "::warning::Signing key differs from existing Admin APK; update installation may require reinstall."
+          fi
 
       - name: Build Admin debug APK
         working-directory: mobile-app

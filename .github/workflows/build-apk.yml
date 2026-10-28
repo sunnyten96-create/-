@@ -244,6 +244,32 @@ jobs:
           grep -q "9.7.3" mobile-app/app/src/main/assets/mobile/app.js
           keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey | grep -q "F4:15:82:93:FD:86:98:B0:63:18:7A:31:9D:C4:14:68:76:2F:E1:7B:A8:CD:CA:32:2C:6D:9B:36:5F:D4:6A:C4"
           
+      - name: Pin actual APK signing to restored keystore
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('mobile-app/app/build.gradle')
+          t=p.read_text()
+          assert 'signingConfigs {' not in t
+          t=t.replace('android {\n', '''android {
+              signingConfigs {
+                  debug {
+                      storeFile file(System.getProperty('user.home') + '/.android/debug.keystore')
+                      storePassword 'android'
+                      keyAlias 'androiddebugkey'
+                      keyPassword 'android'
+                  }
+              }
+          ''', 1)
+          t=t.replace('    buildTypes {\n', '''    buildTypes {
+                  debug {
+                      signingConfig signingConfigs.debug
+                  }
+          ''', 1)
+          p.write_text(t)
+          PY
+
       - name: Build debug APK
         working-directory: mobile-app
         run: gradle :app:assembleDebug --stacktrace
@@ -252,6 +278,8 @@ jobs:
         shell: bash
         run: |
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs mobile-app/app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs mobile-app/app/build/outputs/apk/debug/app-debug.apk | grep -Fqi "Signer #1 certificate SHA-256 digest: f4158293fd8698b063187a319dc41468762fe17ba8cdca322c6d9b365fd46ac4"
+          echo "APK signer strictly matches cached key: f4158293fd8698b063187a319dc41468762fe17ba8cdca322c6d9b365fd46ac4"
 
       - name: Rename APK
         run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Mobile-v0.8.0.apk

@@ -1,4 +1,4 @@
-name: Build Android APK 0.8.0
+name: Build Android APK 0.8.1
 
 permissions:
   contents: write
@@ -270,6 +270,38 @@ jobs:
           p.write_text(t)
           PY
 
+      - name: Apply Mobile 0.8.1 UI patch (verified transfer)
+        shell: bash
+        run: |
+          cat m081part00.b64 m081part01.b64 m081part02.b64 m081part03.b64 m081part04.b64 m081part05.b64 | base64 --decode > mobile081.patch.gz
+          echo "4073da385115222efbe07638ed9303db2847130fa1c7bdc492cac3ea52065a6d  mobile081.patch.gz" | sha256sum -c -
+          gzip -dc mobile081.patch.gz > mobile081.patch
+          echo "446936c5663747a6cae4b4eb4d62c181aa80e092c83320a2b496f7d88b33c1ab  mobile081.patch" | sha256sum -c -
+          python - <<'PY'
+          from pathlib import Path
+          src=Path("mobile081.patch").read_text()
+          sections=src.split("diff -ruN ")
+          allowed=(
+              "app/build.gradle",
+              "app/src/main/assets/mobile/app.css",
+              "app/src/main/assets/mobile/app.js",
+              "app/src/main/java/kr/novelcheck/mobile/MainActivity.java",
+          )
+          body="".join("diff -ruN "+section for section in sections if section and any(section.startswith("base080/"+path+" ") for path in allowed))
+          assert body.count("diff -ruN ")==len(allowed), "Mobile core patch files missing"
+          Path("mobile081-core.patch").write_text(body)
+          PY
+          patch -d mobile-app -p1 --dry-run < mobile081-core.patch
+          patch -d mobile-app -p1 < mobile081-core.patch
+          node --check mobile-app/app/src/main/assets/mobile/app.js
+          python -c "import xml.etree.ElementTree as ET;ET.parse('mobile-app/app/src/main/AndroidManifest.xml')"
+          grep -q "versionCode 13" mobile-app/app/build.gradle
+          grep -q "versionName '0.8.1'" mobile-app/app/build.gradle
+          grep -q "NovelCheckMobile/0.8.1" mobile-app/app/src/main/java/kr/novelcheck/mobile/MainActivity.java
+          grep -q "projectListSwitcherMobile" mobile-app/app/src/main/assets/mobile/app.js
+          grep -q "projectCurrentAverage" mobile-app/app/src/main/assets/mobile/app.js
+          grep -q "continuity-body" mobile-app/app/src/main/assets/mobile/app.css
+
       - name: Build debug APK
         working-directory: mobile-app
         run: gradle :app:assembleDebug --stacktrace
@@ -282,13 +314,13 @@ jobs:
           echo "APK signer strictly matches cached key: f4158293fd8698b063187a319dc41468762fe17ba8cdca322c6d9b365fd46ac4"
 
       - name: Rename APK
-        run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Mobile-v0.8.0.apk
+        run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Mobile-v0.8.1.apk
 
       - name: Upload Actions artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AI-Manuscript-Director-Mobile-v0.8.0-APK
-          path: AI-Manuscript-Director-Mobile-v0.8.0.apk
+          name: AI-Manuscript-Director-Mobile-v0.8.1-APK
+          path: AI-Manuscript-Director-Mobile-v0.8.1.apk
           if-no-files-found: error
           retention-days: 90
 
@@ -297,8 +329,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          if gh release view "v0.8.0" >/dev/null 2>&1; then
-            gh release upload "v0.8.0" AI-Manuscript-Director-Mobile-v0.8.0.apk --clobber
+          if gh release view "v0.8.1" >/dev/null 2>&1; then
+            gh release upload "v0.8.1" AI-Manuscript-Director-Mobile-v0.8.1.apk --clobber
           else
-            gh release create "v0.8.0" AI-Manuscript-Director-Mobile-v0.8.0.apk               --title "AI 원고 디렉터 Mobile 0.8.0"               --notes "Web 9.7.3 기준 Mobile 0.8.0. 앱 화면 종료 후 진행 분석만 Android JobScheduler로 최소 30분 후 저빈도 확인하고 완료/실패 알림을 표시합니다. 상시 서비스, WakeLock, 정확 알람은 사용하지 않습니다. 절전 정책에 따라 지연될 수 있으며 실시간 FCM 푸시는 별도 서버 설정이 필요합니다."
+            gh release create "v0.8.1" AI-Manuscript-Director-Mobile-v0.8.1.apk               --title "AI 원고 디렉터 Mobile 0.8.1"               --notes "Web 9.7.3 기준 Mobile 0.8.0. 앱 화면 종료 후 진행 분석만 Android JobScheduler로 최소 30분 후 저빈도 확인하고 완료/실패 알림을 표시합니다. 상시 서비스, WakeLock, 정확 알람은 사용하지 않습니다. 절전 정책에 따라 지연될 수 있으며 실시간 FCM 푸시는 별도 서버 설정이 필요합니다."
           fi

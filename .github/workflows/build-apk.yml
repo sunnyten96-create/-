@@ -289,10 +289,34 @@ jobs:
           )
           body="".join("diff -ruN "+section for section in sections if section and any(section.startswith("base080/"+path+" ") for path in allowed))
           assert body.count("diff -ruN ")==len(allowed), "Mobile core patch files missing"
-          Path("mobile081-core.patch").write_text(body)
+          # Background job code appended by 0.8.0 CI makes the last long-line JS hunk differ.
+          # Apply only the unchanged core hunks, then insert precisely the two new
+          # handler prefixes without replacing the 0.8.0 background lifecycle hooks.
+          marker="@@ -293,9 +307,9 @@"
+          assert body.count(marker)==1
+          before,after=body.split(marker,1)
+          next_file="diff -ruN base080/app/src/main/java/kr/novelcheck/mobile/MainActivity.java"
+          assert next_file in after
+          before+=after[after.index(next_file):]
+          Path("mobile081-core.patch").write_text(before)
           PY
           patch -d mobile-app -p1 --dry-run < mobile081-core.patch
           patch -d mobile-app -p1 < mobile081-core.patch
+          python - <<'PY'
+          from pathlib import Path
+          lines=Path("mobile081.patch").read_text().splitlines()
+          new_bind=next(x[1:] for x in lines if x.startswith("+function bind(){"))
+          new_action=next(x[1:] for x in lines if x.startswith("+async function handleAction(e){"))
+          form_prefix=new_bind.split("document.getElementById('login-form')",1)[0].removeprefix("function bind(){")
+          action_prefix=new_action.split("path=el.dataset.path;",1)[1].split("if(a==='tab')",1)[0]
+          target=Path("mobile-app/app/src/main/assets/mobile/app.js")
+          text=target.read_text()
+          assert text.count("function bind(){")==1
+          assert text.count("path=el.dataset.path;if(a==='tab')")==1
+          text=text.replace("function bind(){","function bind(){"+form_prefix,1)
+          text=text.replace("path=el.dataset.path;if(a==='tab')","path=el.dataset.path;"+action_prefix+"if(a==='tab')",1)
+          target.write_text(text)
+          PY
           node --check mobile-app/app/src/main/assets/mobile/app.js
           python -c "import xml.etree.ElementTree as ET;ET.parse('mobile-app/app/src/main/AndroidManifest.xml')"
           grep -q "versionCode 13" mobile-app/app/build.gradle

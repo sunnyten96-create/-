@@ -263,7 +263,16 @@ jobs:
           echo "135ab8a03e40312ac82d0591b04385be73113f769e8a9953f7a6e4fa9bca5d13  admin040.patch.gz" | sha256sum -c -
           gzip -dc admin040.patch.gz > admin040.patch
           echo "66ea756973981cbaeb0ebb26d1469c56304fc7913de8d42bf3ef2b82edd1496b  admin040.patch" | sha256sum -c -
-          patch -d mobile-app -p1 < admin040.patch
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          p=Path('admin040.patch').read_text()
+          blocks=re.split(r'(?=^diff -ruN )',p,flags=re.MULTILINE)
+          filtered=''.join(b for b in blocks if not b.startswith('diff -ruN a030/README.md '))
+          Path('admin040-effective.patch').write_text(filtered)
+          PY
+          patch -d mobile-app -p1 < admin040-effective.patch
+          printf '%s\n' '# 디렉터 관리자 Android 0.4.0' '' 'AI 원고 디렉터 Web 9.6.12 기준 모바일 관리자 앱.' > mobile-app/README.md
 
       - name: Validate Admin 0.4.0 / Web 9.6.12 sync
         shell: bash

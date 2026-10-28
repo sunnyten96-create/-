@@ -1,4 +1,4 @@
-name: Build AI Manuscript Director Admin 0.4.0
+name: Build AI Manuscript Director Admin 0.5.0
 
 permissions:
   contents: write
@@ -293,9 +293,25 @@ jobs:
             echo "SIGNING_COMPATIBLE_WITH_PREVIOUS=true"
           else
             echo "SIGNING_COMPATIBLE_WITH_PREVIOUS=false"
-            echo "::warning::Signing key differs from existing Admin APK; update installation may require reinstall."
+            echo "::error::Wrong Admin signer; refusing release."; exit 1
           fi
 
+      - name: Apply Admin 0.5.0 / Web 9.7.3 optimization
+        shell: bash
+        run: |
+          base64 --decode admin050_apply.py.gz.b64 | gzip -dc > /tmp/admin050_apply.py
+          echo "8bbed4ea50fcdd1110db22f2275d7d22c0227c8fce599dd8d3bf9a647ff590e0  /tmp/admin050_apply.py" | sha256sum --check
+          python /tmp/admin050_apply.py
+
+          node --check mobile-app/app/src/main/assets/admin/app.js
+          python -c "import xml.etree.ElementTree as ET; ET.parse('mobile-app/app/src/main/AndroidManifest.xml')"
+          grep -q "applicationId 'kr.novelcheck.admin'" mobile-app/app/build.gradle
+          grep -q "versionName '0.5.0'" mobile-app/app/build.gradle
+          grep -q "versionCode 6" mobile-app/app/build.gradle
+          grep -q "NovelCheckAdmin/0.5.0" mobile-app/app/src/main/java/kr/novelcheck/admin/MainActivity.java
+          grep -q "9.7.3" mobile-app/app/src/main/assets/admin/app.js
+          keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey | grep -q "C6:6A:25:FC:06:18:57:F2:0D:72:F7:E6:F9:51:B4:8F:0F:EB:1F:7A:14:B4:A9:B9:13:2B:A5:44:83:EC:96:C6"
+          
       - name: Build Admin debug APK
         working-directory: mobile-app
         run: gradle :app:assembleDebug --stacktrace
@@ -309,13 +325,13 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -q "package: name='kr.novelcheck.admin'"
 
       - name: Rename APK
-        run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Admin-v0.4.0.apk
+        run: cp mobile-app/app/build/outputs/apk/debug/app-debug.apk AI-Manuscript-Director-Admin-v0.5.0.apk
 
       - name: Upload Actions artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AI-Manuscript-Director-Admin-v0.4.0-APK
-          path: AI-Manuscript-Director-Admin-v0.4.0.apk
+          name: AI-Manuscript-Director-Admin-v0.5.0-APK
+          path: AI-Manuscript-Director-Admin-v0.5.0.apk
           if-no-files-found: error
           retention-days: 90
 
@@ -324,10 +340,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          if gh release view "admin-v0.4.0" >/dev/null 2>&1; then
-            gh release upload "admin-v0.4.0" AI-Manuscript-Director-Admin-v0.4.0.apk --clobber
+          if gh release view "admin-v0.5.0" >/dev/null 2>&1; then
+            gh release upload "admin-v0.5.0" AI-Manuscript-Director-Admin-v0.5.0.apk --clobber
           else
-            gh release create "admin-v0.4.0" AI-Manuscript-Director-Admin-v0.4.0.apk \
-              --title "디렉터 관리자 0.4.0" \
-              --notes "Web 9.6.12 기준 관리자 앱. 활성 작업실, 점검 모드, 사용자 역할·서비스 등급·일/월 사용량·Credit 관리와 연구자료 기능을 유지합니다. 연구자료 리포트의 최신 편집자 메모 영역을 모바일에서 읽기 쉽도록 간격·타이포·탭 조작성을 보강했고, 원문 플로팅 버튼과 근거 클릭 자동 펼침·문단 이동·강조, 우상단 X 닫기를 유지합니다. 기존 패키지와 고정 관리자 서명키를 유지합니다."
+            gh release create "admin-v0.5.0" AI-Manuscript-Director-Admin-v0.5.0.apk \
+              --title "디렉터 관리자 0.5.0" \
+              --notes "Web 9.7.3 기준 관리자 앱. 사용자 관리/연구자료/원문 플로팅 유지. WebView 시작 캐시 강제 초기화 및 제3자 쿠키를 제거해 리소스 사용을 최적화했습니다."
           fi
